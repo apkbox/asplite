@@ -191,16 +191,14 @@ static int RetargetPath(const char *ancestor, const char *path,
 
 static int CreateDirectories(const char *path)
 {
-#ifdef _WIN32
-    
-#endif
 
     return 0;
 }
 
 
 static struct membuf *GenerateLuaFile(const char *asp_path,
-        const char *lua_path, char **error_message)
+                                      const char *lua_path,
+                                      char **error_message)
 {
     FILE *fp;
     struct stat asp_file_stat;
@@ -381,23 +379,45 @@ struct AspliteCallbackUserdata
 };
 
 
-static int WriteCallbackWrapper(lua_State *L)
+static int asplite_Write(lua_State *L)
 {
-    struct AspliteCallbackUserdata *callback =
-            (struct AspliteCallbackUserdata *)lua_touserdata(L, lua_upvalueindex(1));
-    assert(callback != NULL);
-    callback->write_func((void *)callback->context, lua_tostring(L, 1));
+    struct AspPageContext *context =
+            (struct AspPageContext *)lua_touserdata(L, lua_upvalueindex(1));
+    assert(context != NULL);
+    assert(context->response != NULL);
+    context->response->Write(lua_tostring(L, 1));
+    return 0;
+}
+
+
+static int asplite_Error(lua_State *L)
+{
+    struct AspPageContext *context =
+        (struct AspPageContext *)lua_touserdata(L, lua_upvalueindex(1));
+    assert(context != NULL);
+    assert(context->server != NULL);
+    context->server->OnError(lua_tostring(L, 1));
+    return 0;
+}
+
+
+static int asplite_WriteLog(lua_State *L)
+{
+    struct AspPageContext *context =
+        (struct AspPageContext *)lua_touserdata(L, lua_upvalueindex(1));
+    assert(context != NULL);
+    assert(context->server != NULL);
+    context->server->WriteLog(lua_tostring(L, 1));
     return 0;
 }
 
 
 void ExeciteAspPage(lua_State *L, const char *asp_page,
-        const struct AspPageContext *context)
+                    const struct AspPageContext *context)
 {
     void *compiled_page = NULL;
     int result;
     char *error_message = NULL;
-    struct AspliteCallbackUserdata *udata;
 
     int stack = lua_gettop(L);
 
@@ -410,24 +430,18 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     lua_newtable(L);
 
     lua_pushstring(L, "write_func");
-    udata = (struct AspliteCallbackUserdata *)lua_newuserdata(L, sizeof(struct AspliteCallbackUserdata));
-    udata->context = context;
-    udata->write_func = context->write_func;
-    lua_pushcclosure(L, WriteCallbackWrapper, 1);
+    lua_pushlightuserdata(L, (void *)context);
+    lua_pushcclosure(L, asplite_Write, 1);
     lua_settable(L, -3);
 
     lua_pushstring(L, "error_func");
-    udata = (struct AspliteCallbackUserdata *)lua_newuserdata(L, sizeof(struct AspliteCallbackUserdata));
-    udata->context = context;
-    udata->write_func = context->error_func;
-    lua_pushcclosure(L, WriteCallbackWrapper, 1);
+    lua_pushlightuserdata(L, (void *)context);
+    lua_pushcclosure(L, asplite_Error, 1);
     lua_settable(L, -3);
 
     lua_pushstring(L, "log_func");
-    udata = (struct AspliteCallbackUserdata *)lua_newuserdata(L, sizeof(struct AspliteCallbackUserdata));
-    udata->context = context;
-    udata->write_func = context->log_func;
-    lua_pushcclosure(L, WriteCallbackWrapper, 1);
+    lua_pushlightuserdata(L, (void *)context);
+    lua_pushcclosure(L, asplite_WriteLog, 1);
     lua_settable(L, -3);
 
     // create request table
@@ -435,14 +449,14 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     lua_newtable(L);
 
     lua_pushstring(L, "QUERY_STRING");
-    lua_pushstring(L, context->request.query_string);
+    lua_pushstring(L, context->request->GetQueryString().c_str());
     lua_settable(L, -3);
 
     lua_pushstring(L, "HTTP_METHOD");
-    lua_pushstring(L, context->request.request_method);
+    lua_pushstring(L, context->request->GetRequestMethod().c_str());
     lua_settable(L, -3);
     lua_pushstring(L, "REQUEST_METHOD");
-    lua_pushstring(L, context->request.request_method);
+    lua_pushstring(L, context->request->GetRequestMethod().c_str());
     lua_settable(L, -3);
 
     // set context.request field
@@ -453,12 +467,21 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
 
     lua_pop(L, 1); // pop asplite table
 
-    result = CompileAspPage(L, asp_page, &context->engine_config, &error_message);
+    AspEngineConfig engine_config;
+    engine_config.cache_lua = context->config->cache_lua;
+    engine_config.cache_luac = context->config->cache_luac;
+    // TODO: let the function know ahead of time where each patch will be
+    //      asp file path
+    //      lua file path
+    //      luac file path
+    //engine_config.cache_path = context->config->cache_directory.c_str();
+    // TODO: document path.
+    //engine_config.upload_path = context->config->upload_directory.c_str();
+
+    result = CompileAspPage(L, asp_page, &engine_config, &error_message);
     if (result) {
-        udata = (struct AspliteCallbackUserdata *)lua_newuserdata(L, sizeof(struct AspliteCallbackUserdata));
-        udata->context = context;
-        udata->write_func = context->error_func;
-        lua_pushcclosure(L, WriteCallbackWrapper, 1);
+        lua_pushlightuserdata(L, (void *)context);
+        lua_pushcclosure(L, asplite_Error, 1);
         lua_pushstring(L, error_message);
         lua_call(L, 1, 0);
         free(error_message);
@@ -477,10 +500,8 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     }
 
     if (result != LUA_OK) {
-        udata = (struct AspliteCallbackUserdata *)lua_newuserdata(L, sizeof(struct AspliteCallbackUserdata));
-        udata->context = context;
-        udata->write_func = context->error_func;
-        lua_pushcclosure(L, WriteCallbackWrapper, 1);
+        lua_pushlightuserdata(L, (void *)context);
+        lua_pushcclosure(L, asplite_Error, 1);
         lua_pushvalue(L, -2);
         lua_call(L, 1, 0);
     }

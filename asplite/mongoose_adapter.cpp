@@ -34,44 +34,6 @@ AspliteMongooseAdapter *DefaultGetter(void *user_data)
 } // namespace
 
 
-class HttpHeader {
-public:
-    HttpHeader(const char *name, const char *value)
-        : name(name), value(value) {}
-
-    std::string name;
-    std::string value;
-};
-
-
-class IHttpServerAdapter {
-public:
-    virtual ~IHttpServerAdapter() {}
-
-    virtual std::string MapPath(const std::string &uri) = 0;
-};
-
-
-class IHttpRequestAdapter {
-public:
-    virtual ~IHttpRequestAdapter() {}
-
-    virtual std::string GetUri() = 0;
-    virtual std::string GetQueryString() = 0;
-    virtual std::string GetRequestMethod() = 0;
-    virtual const std::vector<HttpHeader> &GetHeaders() = 0;
-};
-
-
-class IHttpResponseAdapter {
-public:
-    virtual ~IHttpResponseAdapter() {}
-
-    virtual void Respond405(const std::string &allow,
-                            const std::string &extra) = 0;
-};
-
-
 class MongooseHttpServerAdapter : public IHttpServerAdapter {
 public:
     MongooseHttpServerAdapter(struct mg_connection *conn) : conn_(conn) {}
@@ -81,6 +43,14 @@ public:
         char buffer[1024];
         mg_map_path(conn_, uri.c_str(), buffer, sizeof(buffer));
         return std::string(buffer);
+    }
+
+    void OnError(const char *text) override {
+        // no log.
+    }
+
+    void WriteLog(const char *text) override {
+        // no log.
     }
 
 private:
@@ -126,6 +96,14 @@ class MongooseHttpResponseAdapter : public IHttpResponseAdapter {
 public:
     MongooseHttpResponseAdapter(struct mg_connection *conn) : conn_(conn) {}
 
+    void Write(const char *data, size_t len) override {
+        mg_write(conn_, data, len);
+    }
+
+    void Write(const char *text) override {
+        mg_write(conn_, text, strlen(text));
+    }
+
     void Respond405(const std::string &allow,
                     const std::string &extra) override {
         mg_printf(conn_, "HTTP/1.1 405 Method Not Allowed\r\n"
@@ -168,16 +146,20 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
     lua_State *L = luaL_newstate();
 
     struct AspPageContext context;
+    context.config = &adapter->config_;
+    context.server = &server_adapter;
+    context.request = &request_adapter;
+    context.response = &response_adapter;
     //context.write_func = asp_write;
     //context.error_func = asp_error;
     //context.log_func = asp_write;
     //context.user_data = conn;
-    context.request.request_method = request_adapter.GetRequestMethod();
-    context.request.query_string = request_adapter.GetQueryString();
-    context.engine_config.root_path = conn->ctx->config[DOCUMENT_ROOT];
-    context.engine_config.cache_path = conn->ctx->config[DOCUMENT_ROOT];
-    context.engine_config.cache_lua = adapter->config_.cache_lua;
-    context.engine_config.cache_luac = adapter->config_.cache_luac;
+    //context.request.request_method = request_adapter.GetRequestMethod();
+    //context.request.query_string = request_adapter.GetQueryString();
+    //context.engine_config.root_path = conn->ctx->config[DOCUMENT_ROOT];
+    //context.engine_config.cache_path = conn->ctx->config[DOCUMENT_ROOT];
+    //context.engine_config.cache_lua = adapter->config_.cache_lua;
+    //context.engine_config.cache_luac = adapter->config_.cache_luac;
 
     ExeciteAspPage(L, asp_path.c_str(), &context);
 

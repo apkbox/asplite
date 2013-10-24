@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mongoose", "mongoose\mongoose.vcxproj", "{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lualib", "lualib\lualib.vcxproj", "{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "asplite", "asplite\asplite.vcxproj", "{5C814481-2796-4169-97F8-16EA8787E411}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Debug|Win32.Build.0 = Debug|Win32
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Debug|x64.ActiveCfg = Debug|x64
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Debug|x64.Build.0 = Debug|x64
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Release|Win32.ActiveCfg = Release|Win32
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Release|Win32.Build.0 = Release|Win32
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Release|x64.ActiveCfg = Release|x64
+		{C0A1C0C7-5F05-4E0E-9166-0599D5C4289D}.Release|x64.Build.0 = Release|x64
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Debug|Win32.Build.0 = Debug|Win32
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Debug|x64.ActiveCfg = Debug|x64
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Debug|x64.Build.0 = Debug|x64
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Release|Win32.ActiveCfg = Release|Win32
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Release|Win32.Build.0 = Release|Win32
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Release|x64.ActiveCfg = Release|x64
+		{BE6FDCBB-CAF5-4AAC-BC64-D2EB43906AD6}.Release|x64.Build.0 = Release|x64
+		{5C814481-2796-4169-97F8-16EA8787E411}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5C814481-2796-4169-97F8-16EA8787E411}.Debug|Win32.Build.0 = Debug|Win32
+		{5C814481-2796-4169-97F8-16EA8787E411}.Debug|x64.ActiveCfg = Debug|x64
+		{5C814481-2796-4169-97F8-16EA8787E411}.Debug|x64.Build.0 = Debug|x64
+		{5C814481-2796-4169-97F8-16EA8787E411}.Release|Win32.ActiveCfg = Release|Win32
+		{5C814481-2796-4169-97F8-16EA8787E411}.Release|Win32.Build.0 = Release|Win32
+		{5C814481-2796-4169-97F8-16EA8787E411}.Release|x64.ActiveCfg = Release|x64
+		{5C814481-2796-4169-97F8-16EA8787E411}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

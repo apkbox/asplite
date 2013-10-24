@@ -23,8 +23,52 @@
 #define ASPLITE_ASPLITE_H_562542B9_D0D5_4362_9B23_E9E1CABF9903
 
 #include <string>
+#include <vector>
 
 #include "lua/lua.hpp"
+
+
+class HttpHeader {
+public:
+    HttpHeader(const char *name, const char *value)
+        : name(name), value(value) {}
+
+    std::string name;
+    std::string value;
+};
+
+
+class IHttpServerAdapter {
+public:
+    virtual ~IHttpServerAdapter() {}
+
+    virtual std::string MapPath(const std::string &uri) = 0;
+    virtual void OnError(const char *text) = 0;
+    virtual void WriteLog(const char *text) = 0;
+};
+
+
+class IHttpRequestAdapter {
+public:
+    virtual ~IHttpRequestAdapter() {}
+
+    virtual std::string GetUri() = 0;
+    virtual std::string GetQueryString() = 0;
+    virtual std::string GetRequestMethod() = 0;
+    virtual const std::vector<HttpHeader> &GetHeaders() = 0;
+};
+
+
+class IHttpResponseAdapter {
+public:
+    virtual ~IHttpResponseAdapter() {}
+
+    virtual void Write(const char *data, size_t len) = 0;
+    virtual void Write(const char *text) = 0;
+
+    virtual void Respond405(const std::string &allow,
+                            const std::string &extra) = 0;
+};
 
 
 class AspliteConfig {
@@ -57,6 +101,12 @@ typedef void (*asplite_WriteCallback)(void *user_data, const char *text);
 
 struct AspPageContext
 {
+    AspliteConfig *config;
+    IHttpServerAdapter *server;
+    IHttpRequestAdapter *request;
+    IHttpResponseAdapter *response;
+
+    /*
     asplite_WriteCallback write_func;
     asplite_WriteCallback error_func;
     asplite_WriteCallback log_func;
@@ -66,6 +116,7 @@ struct AspPageContext
         const char *request_method;
         const char *query_string;
     } request;
+    */
 };
 
 

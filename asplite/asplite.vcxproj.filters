@@ -33,9 +33,6 @@
     <ClCompile Include="post.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mod_asplite.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="mongoose_adapter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -68,7 +68,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..;../lualib/lua;../asplite;../lualib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../lualib/lua;../lualib</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>USE_LUA;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -87,7 +87,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..;../lualib/lua;../asplite;../lualib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../lualib/lua;../lualib</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>USE_LUA;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -104,7 +104,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..;../lualib/lua;../asplite;../lualib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../lualib/lua;../lualib</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>USE_LUA;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -123,7 +123,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..;../lualib/lua;../asplite;../lualib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../lualib/lua;../lualib</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>USE_LUA;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
