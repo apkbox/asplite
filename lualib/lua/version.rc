@@ -1,0 +1,150 @@
+// @RELENG_VERSION: 3
+//
+// This file is used by the automated build process.
+//
+// DO NOT COPY THIS FILE TO ANOTHER PROJECT.
+// DO NOT MODIFY THIS FILE.
+//
+// If you need this file for a new module, take a copy from
+// RELENG directory of the project.
+//
+#include <windows.h>
+
+#include "version.h"        // Module specific version info
+
+#define AT_LEAST_ONE_DEFINED__  (defined(RELENG_VI_MAJOR) || defined(RELENG_VI_MINOR) || defined(RELENG_VI_BUILD) || defined(RELENG_VI_PATCH))
+#define ALL_DEFINED__           (defined(RELENG_VI_MAJOR) && defined(RELENG_VI_MINOR) && defined(RELENG_VI_BUILD) && defined(RELENG_VI_PATCH))
+
+#if !(ALL_DEFINED__ || !(ALL_DEFINED__ || AT_LEAST_ONE_DEFINED__))
+#error Build configuration error: Partial version definition is not allowed.
+#endif
+
+#if !defined(RELENG_VI_MAJOR)
+#define RELENG_VI_MAJOR         0
+#define RELENG_VI_MINOR         0
+#define RELENG_VI_BUILD         0
+#define RELENG_VI_PATCH         0
+#endif
+
+#define RELENG_INTERNAL_STR_(n)         RELENG_INTERNAL_STR2_(n)
+#define RELENG_INTERNAL_STR2_(n)        #n
+
+#if defined(RELENG_VI_PRODUCTVERSION) || defined(RELENG_VI_PRODUCTVERSION_TEXT)
+#error Build configuration error: RELENG_VI_PRODUCTVERSION and/or RELENG_VI_PRODUCTVERSION_TEXT must not be defined.
+#endif
+
+// The following macros will be patched by the old build system
+// The new build system will globally define these constants.
+// BEGIN
+#define RELENG_VI_PRODUCTVERSION        RELENG_VI_MAJOR,RELENG_VI_MINOR,RELENG_VI_PATCH,RELENG_VI_BUILD
+#define RELENG_VI_PRODUCTVERSION_TEXT   RELENG_INTERNAL_STR_(RELENG_VI_MAJOR) "." RELENG_INTERNAL_STR_(RELENG_VI_MINOR) "." RELENG_INTERNAL_STR_(RELENG_VI_PATCH) "." RELENG_INTERNAL_STR_(RELENG_VI_BUILD)
+
+#if !defined( RELENG_VI_FILEVERSION )
+#define RELENG_VI_FILEVERSION           RELENG_VI_PRODUCTVERSION
+#define RELENG_VI_FILEVERSION_TEXT      RELENG_VI_PRODUCTVERSION_TEXT
+#else
+#if defined(RELENG_VI_FILEVERSION) && !defined(RELENG_VI_FILEVERSION_TEXT)
+#error Build configuration error: if RELENG_VI_FILEVERSION defined, RELENG_VI_FILEVERSION_TEXT must be defined too.
+#endif
+#endif
+
+#if !defined(RELENG_VI_COMPANY)
+#define RELENG_VI_COMPANY       "Oce Display Graphics Systems"
+#endif
+
+#if !defined(RELENG_VI_COPYRIGHT)
+#define RELENG_VI_COPYRIGHT     "Copyright (C) 2009-2011 Oce Display Graphics Systems"
+#endif
+
+#if !defined(RELENG_VI_PRODUCTNAME)
+#define RELENG_VI_PRODUCTNAME   ""
+#endif
+
+#if !defined(RELENG_VI_PUBLICBUILD)
+#define RELENG_VI_PRIVATEBUILD
+#endif
+// END
+
+#if defined(_DEBUG)
+#define RELENG_VI_CONFIGURATION_TEXT    " debug"
+#else
+#define RELENG_VI_CONFIGURATION_TEXT
+#endif
+
+#if defined(RELENG_VI_PRIVATEBUILD)
+#define _RELENG_VI_PRIVATEBUILD_FLAGS   VS_FF_PRIVATEBUILD
+#else
+#define _RELENG_VI_PRIVATEBUILD_FLAGS   0
+#endif
+#define RELENG_VI_PRIVATEBUILD_TEXT     "Private build"
+
+#if defined(_DEBUG)
+#define RELENG_VI_FILEFLAGS     0x1L | _RELENG_VI_PRIVATEBUILD_FLAGS
+#else
+#define RELENG_VI_FILEFLAGS     0x0L | _RELENG_VI_PRIVATEBUILD_FLAGS
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION        RELENG_VI_FILEVERSION
+ PRODUCTVERSION     RELENG_VI_PRODUCTVERSION
+ FILEFLAGSMASK      VS_FFI_FILEFLAGSMASK & ~VS_FF_SPECIALBUILD      // We do not allow special builds
+ FILEFLAGS          RELENG_VI_FILEFLAGS
+ FILEOS             VOS_NT_WINDOWS32
+#if defined(RELENG_VT_EXECUTABLE)
+ FILETYPE           VFT_APP
+#else
+ FILETYPE           VFT_DLL
+#endif
+ FILESUBTYPE        VFT2_UNKNOWN
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904b0"
+		BEGIN
+			VALUE "Company", RELENG_VI_COMPANY
+			VALUE "FileDescription", RELENG_VI_FILEDESCIPTION
+			VALUE "FileVersion", RELENG_VI_FILEVERSION_TEXT RELENG_VI_CONFIGURATION_TEXT
+			VALUE "InternalName", RELENG_VI_INTERNALNAME
+			VALUE "LegalCopyright", RELENG_VI_COPYRIGHT
+			VALUE "OriginalFilename", RELENG_VI_ORIGINALFILENAME
+			VALUE "ProductName", RELENG_VI_PRODUCTNAME
+			VALUE "ProductVersion", RELENG_VI_PRODUCTVERSION_TEXT
+#if defined(RELENG_VI_PRIVATEBUILD)
+			VALUE "PrivateBuild", RELENG_VI_PRIVATEBUILD_TEXT
+#endif
+#if defined(RELENG_VI_EXTERNALCOPYRIGHT)
+			VALUE "ExternalCopyright", RELENG_VI_EXTERNALCOPYRIGHT
+#endif
+#if defined(RELENG_VI_BUILDTIMESTAMP)
+			VALUE "BuildTimestamp", RELENG_VI_BUILDTIMESTAMP
+#endif
+#if defined(RELENG_VI_PRINTERARCHITECTURE)
+			VALUE "PrinterArchitecture", RELENG_VI_PRINTERARCHITECTURE
+#endif
+#if defined(RELENG_VI_SUPPORTSHARDWARE)
+			VALUE "SupportsHardware", RELENG_VI_SUPPORTSHARDWARE
+#endif
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x409, 1200
+	END
+END
+
+// English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
