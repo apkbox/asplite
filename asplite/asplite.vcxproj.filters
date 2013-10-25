@@ -50,10 +50,10 @@
     <ClInclude Include="generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="asphost.h">
+    <ClInclude Include="mongoose_adapter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mongoose_adapter.h">
+    <ClInclude Include="post.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

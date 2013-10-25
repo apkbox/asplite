@@ -55,7 +55,11 @@ public:
     virtual std::string GetUri() = 0;
     virtual std::string GetQueryString() = 0;
     virtual std::string GetRequestMethod() = 0;
-    virtual const std::vector<HttpHeader> &GetHeaders() = 0;
+
+    virtual const std::vector<HttpHeader> &GetHeaders() const = 0;
+    virtual std::string GetHeader(const char *name) const = 0;
+
+    virtual int Read(void *buffer, size_t buffer_size) = 0;
 };
 
 
@@ -68,6 +72,12 @@ public:
 
     virtual void Respond405(const std::string &allow,
                             const std::string &extra) = 0;
+
+    virtual void Respond415(const std::string &content_type) = 0;
+
+//    virtual void SendError(int code, const char *msg,
+//                           const std::vector<std::string> *headers = NULL,
+//                           const char *body = NULL) = 0;
 };
 
 
@@ -80,19 +90,9 @@ public:
 };
 
 
-struct AspEngineConfig {
-    int cache_lua;
-    int cache_luac;
-
-    // If cache_lua or cache_luac is specified,
-    // then both root_path and cache_path are required.
-
-    // Document root path.
-    const char *root_path;
-    // Cache directory path.
-    const char *cache_path;
-    // Upload path
-    const char *upload_path;
+struct AspliteCompilerParameters {
+    std::string lua_path;
+    std::string luac_path;
 };
 
 
@@ -105,18 +105,6 @@ struct AspPageContext
     IHttpServerAdapter *server;
     IHttpRequestAdapter *request;
     IHttpResponseAdapter *response;
-
-    /*
-    asplite_WriteCallback write_func;
-    asplite_WriteCallback error_func;
-    asplite_WriteCallback log_func;
-    void *user_data;
-    struct AspEngineConfig engine_config;
-    struct {
-        const char *request_method;
-        const char *query_string;
-    } request;
-    */
 };
 
 
@@ -127,11 +115,12 @@ struct AspPageContext
 // Returns a non-zero error code and an error message in |error_message|.
 // If |error_message| is not NULL, then user must free the the returned
 // string with free function.
-int CompileAspPage(lua_State *L, const char *asp_path,
-        const struct AspEngineConfig *config, char **error_message);
+int CompileAspPage(lua_State *L, const std::string &asp_path,
+                   const struct AspEngineConfig *config,
+                   std::string *error_message);
 
-void ExeciteAspPage(lua_State *L, const char *asp_page,
-        const struct AspPageContext *context);
+void ExeciteAspPage(lua_State *L, const std::string &asp_path,
+                    const AspPageContext &context);
 
 bool IsAspliteOption(const std::string &option);
 

@@ -19,26 +19,17 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include "asplite/post.h"
+
 #include <cassert>
 #include <cstdio>
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 
-#include "asplite/asplite.h"
 #include "mongoose/mongoose.h"
-
-#include "asplite/asphost.h"
-
-
-struct FormItem {
-    std::string name;
-    std::string content_type;
-    std::string content_disposition;
-    std::string file_name;
-    std::string value;
-    bool is_file;
-};
+#include "asplite/asplite.h"
 
 
 template<typename STR>
@@ -183,7 +174,7 @@ static bool ExtractContentDispositionParameters(std::string data,
                                                 struct FormItem *form_item)
 {
     std::vector<std::string> params;
-    if (Tokenize(data, ": ", &params) == 0) {
+    if (Tokenize(data, "; ", &params) == 0) {
         // no parameters
         return false;
     }
@@ -236,12 +227,12 @@ static bool ProcessPartHeaders(const std::vector<std::string> &headers,
             // TODO: Strip leading WS
             ExtractContentDispositionParameters(iter->substr(20), form_item);
         }
-        else if (strncmp(iter->c_str(), "Content-Type:", 12) == 0) {
+        else if (strncmp(iter->c_str(), "Content-Type:", 13) == 0) {
             std::string content_type;
             std::string boundary;
 
             // TODO: Strip leading WS
-            ParseContentTypeHeader(iter->substr(12), &content_type, &boundary);
+            ParseContentTypeHeader(iter->substr(13), &content_type, &boundary);
             form_item->content_type = content_type;
             // TODO: Do not handle boundary yet.
         }
@@ -251,21 +242,78 @@ static bool ProcessPartHeaders(const std::vector<std::string> &headers,
 }
 
 
-int ProcessMultipartFormData(IAspliteConnection *conn,
+class ContentBuffer {
+public:
+    virtual ~ContentBuffer() {}
+    virtual bool Append(const char *data, size_t len) = 0;
+    virtual void Finish() = 0;
+};
+
+
+class FileBackedContentBuffer : public ContentBuffer {
+public:
+    FileBackedContentBuffer(const std::string &file) {
+        file_ = fopen(file.c_str(), "wb");
+    }
+
+    ~FileBackedContentBuffer() {
+        Finish();
+    }
+
+    bool Append(const char *data, size_t len) override {
+        if (file_)
+            return fwrite(data, 1, len, file_) == len;
+        else
+            return false;
+    }
+
+    void Finish() override {
+        fclose(file_);
+        file_ = NULL;
+    }
+
+private:
+    FILE *file_;
+};
+
+
+class StringBackedContentBuffer : public ContentBuffer {
+public:
+    StringBackedContentBuffer(std::string *str) : str_(str) {}
+
+    ~StringBackedContentBuffer() {
+        Finish();
+    }
+
+    bool Append(const char *data, size_t len) override {
+        str_->append(data, len);
+        return true;
+    }
+
+    void Finish() override {}
+
+private:
+    std::string *str_;
+};
+
+
+int ProcessMultipartFormData(IHttpRequestAdapter *request,
+                             IHttpResponseAdapter *response,
                              const std::string &boundary,
                              const std::string &request_upload_directory,
-                             struct FormItem *form_items)
+                             std::vector<FormItem> *form_items)
 {
-    static const size_t kDefaultBufferSize = 0x4000;
-    struct FormItem *current_item = NULL;
-    int form_item_index = 0;
-    FILE *current_file = NULL;
+    //static const size_t kDefaultBufferSize = 0x4000;
+    static const size_t kDefaultBufferSize = 10000;
+    FormItem *current_item = NULL;
+    ContentBuffer *current_buffer = NULL;
 
     std::string bd("\r\n--");
     bd += boundary;
 
-    std::vector<char> buf(
-            std::max(kDefaultBufferSize, bd.length() + kDefaultBufferSize));
+    assert(kDefaultBufferSize > bd.length());
+
+    std::vector<char> buf(kDefaultBufferSize);
 
     // The first CRLF was consumed during HTTP request parsing,
     // so we stuff it here artificially.
@@ -274,7 +322,7 @@ int ProcessMultipartFormData(IAspliteConnection *conn,
     size_t len = 2;
 
     while (true) {
-        int read = conn->Read(&buf[len], buf.size() - len);
+        int read = request->Read(&buf[len], buf.size() - len);
         if (read <= 0 && len == 0)
             break;
 
@@ -283,7 +331,8 @@ int ProcessMultipartFormData(IAspliteConnection *conn,
         ptrdiff_t part_offset = FindStringInBuffer(&buf[0], len, bd);
         if (part_offset >= 0) {
             if (current_item != NULL && part_offset > 0) {
-                // TODO: current_item->Write(buf, part - buf);
+                if (current_buffer)
+                    current_buffer->Append(&buf[0], part_offset);
 
                 // Remove written part
                 len -= part_offset;
@@ -317,70 +366,74 @@ int ProcessMultipartFormData(IAspliteConnection *conn,
             if (content_offset < 0)   // Too many headers
                 break;
 
-            current_item = &form_items[form_item_index++];
+            form_items->push_back(FormItem());
+            current_item = &form_items->back();
 
             // Check if there are headers
-            if (content_offset > part_offset) {
-                assert(part_offset <= content_offset);
-
+            if (content_offset > 0) {
                 std::vector<std::string> part_headers;
-                TokenizeBuffer(&buf[part_offset], content_offset - part_offset,
+                TokenizeBuffer(&buf[part_offset], content_offset,
                         "\r\n", &part_headers);
 
-                ProcessPartHeaders(part_headers, form_items);
+                ProcessPartHeaders(part_headers, current_item);
 
-                if (form_items->is_file) {
-                    if (current_file != NULL) {
-                        fclose(current_file);
-                        current_file = NULL;
-                    }
+                delete current_buffer;
+                current_buffer = NULL;
 
-                    if (form_items->file_name.empty()) {
+                if (current_item->is_file) {
+                    if (current_item->file_name.empty()) {
                         // No file name was provided by the browser
-                        form_items->file_name = request_upload_directory +
+                        current_item->file_name = request_upload_directory +
                                 "\\" + GenerateUniqueFileName();
                     }
                     else {
                         // File name provided in the request
-                        form_items->file_name = request_upload_directory +
-                                "\\" + form_items->file_name;
+                        current_item->file_name = request_upload_directory +
+                                "\\" + current_item->file_name;
                     }
 
-                    current_file = fopen(form_items->file_name.c_str(), "wb");
+                    current_buffer = new FileBackedContentBuffer(
+                            current_item->file_name.c_str());
+                }
+                else {
+                    current_buffer = new StringBackedContentBuffer(
+                            &current_item->value);
                 }
             }
 
             content_offset += 4;  // skip CRLF to content
 
-            len -= content_offset;
-            memmove(&buf[0], &buf[content_offset], len);
+            len -= part_offset + content_offset;
+            memmove(&buf[0], &buf[part_offset + content_offset], len);
         }
         else {
-            // Check for possible boundary
-            ptrdiff_t crlf_offset = FindStringInBuffer(&buf[0], len, "\r\n");
-            if (crlf_offset < 0) {
-                // TODO: current_item->Write(buf, len);
-                len = 0;
-            }
-            else {
-                // TODO: current_item->Write(buf, crlf_offset);
-                len -= crlf_offset;
+            // There is no boundary in the current buffer.
+            // So write all minus boundary size accounting for
+            // possiblility of boundary falling on the edge of the buffer.
+            // The buffer is filled at this point, so we need to check if
+            // we have enough data to write.
+            if (len - bd.size() > 0) {
+                if (current_buffer)
+                    current_buffer->Append(&buf[0], len - bd.size());
+
+                memmove(&buf[0], &buf[len - bd.size()], bd.size());
+                len = bd.size();
             }
         }
     }
 
-    if (current_file != NULL) {
-        fclose(current_file);
-        current_file = NULL;
-    }
+    delete current_buffer;
 
     return 0;
 }
 
 
-void ProcessPostRequest(IAspliteConnection *conn)
+void ProcessPostRequest(IHttpRequestAdapter *request,
+                        IHttpResponseAdapter *response,
+                        const std::string &upload_directory,
+                        std::vector<FormItem> *form_items)
 {
-    std::string content_type_header = conn->GetHeader("Content-Type");
+    std::string content_type_header = request->GetHeader("Content-Type");
     if (!content_type_header.empty()) {
         std::string content_type;
         std::string boundary;
@@ -388,13 +441,14 @@ void ProcessPostRequest(IAspliteConnection *conn)
         if (ParseContentTypeHeader(content_type_header, &content_type, &boundary)) {
             if (content_type == "multipart/form-data") {
                 std::string request_directory;
-                ProcessMultipartFormData(conn, boundary, ".", NULL);
+                ProcessMultipartFormData(request, response, boundary,
+                        upload_directory, form_items);
             }
             else if (content_type == "application/x-www-form-urlencoded") {
                 // TODO: Process form
             }
             else {
-                conn->SendError(415, "Unsupported Media Type", NULL, content_type_header.c_str());
+                response->Respond415(content_type_header);
             }
         }
     }

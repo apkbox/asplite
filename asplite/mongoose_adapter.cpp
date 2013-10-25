@@ -21,8 +21,13 @@
 
 #include "asplite/mongoose_adapter.h"
 
+#include <direct.h>
+#include <ctime>
 #include <string>
 #include <vector>
+
+#include "asplite/post.h"
+
 
 namespace {
 
@@ -74,15 +79,33 @@ public:
     }
 
     std::string GetQueryString() override {
-        return std::string(request_info_->query_string);
+        return std::string(request_info_->query_string ? 
+                request_info_->query_string : "");
     }
 
     std::string GetRequestMethod() override {
         return std::string(request_info_->request_method);
     }
 
-    const std::vector<HttpHeader> &GetHeaders() {
+    const std::vector<HttpHeader> &GetHeaders() const override {
         return headers_;
+    }
+
+    std::string GetHeader(const char *name) const override {
+        for (auto v = headers_.rbegin(); v != headers_.rend(); ++v) {
+            if (v->name == name)
+                return v->value;
+        }
+
+        return std::string();
+    }
+
+    int Read(void *buffer, size_t buffer_size) override {
+        return mg_read(conn_, buffer, buffer_size);
+    }
+
+    void SetFormData(const std::vector<FormItem> &form_items) {
+        // TODO: Move form data
     }
 
 private:
@@ -112,10 +135,52 @@ public:
                   "%s", extra.length(), allow.c_str(), extra.c_str());
     }
 
+    void Respond415(const std::string &content_type) override {
+        mg_printf(conn_, "HTTP/1.1 415 Unsupported Media Type\r\n"
+                  "Content-Length: %d\r\n"
+                  "Content type: %s not allowed",
+                  content_type.length(), content_type.c_str());
+    }
+
+
 private:
     struct mg_connection *conn_;
 };
 
+
+static bool CreateRequestUploadDirectory(const std::string &upload_dir,
+                                         std::string *request_dir)
+{
+    std::string new_path(upload_dir);
+
+    if (new_path.length() > 0) {
+        if (*(new_path.end() - 1) == '\\')
+            new_path.resize(new_path.length() - 1);
+    }
+
+    new_path += "\\";
+
+    srand(static_cast<int>(time(NULL)));
+
+    for (int count = 0; count < 50; ++count) {
+        // Try create a new temporary directory with random generated name.
+        // If the one exists, keep trying another path name until we reach
+        // some limit.
+
+        char unique_name[64];
+        sprintf(unique_name, "%012d", rand() % INT_MAX);
+
+        std::string new_dir_name(new_path);
+        new_dir_name.append(unique_name);
+
+        if (mkdir(new_dir_name.c_str()) == 0) {
+            *request_dir = new_dir_name;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 
 int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
@@ -127,10 +192,19 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
     MongooseHttpResponseAdapter response_adapter(conn);
     MongooseHttpServerAdapter server_adapter(conn);
 
+    std::vector<FormItem> form_items;
+    std::string upload_dir;
+
     if (request_adapter.GetRequestMethod() == "POST") {
-        ProcessPostRequest(conn);
+        CreateRequestUploadDirectory(adapter->config_.upload_directory,
+                &upload_dir);
+
+        ProcessPostRequest(&request_adapter, &response_adapter,
+                upload_dir, &form_items);
+
+        request_adapter.SetFormData(form_items);
     }
-    if (request_adapter.GetRequestMethod() == "GET") {
+    else if (request_adapter.GetRequestMethod() == "GET") {
         ; // default
     }
     else {
@@ -150,20 +224,14 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
     context.server = &server_adapter;
     context.request = &request_adapter;
     context.response = &response_adapter;
-    //context.write_func = asp_write;
-    //context.error_func = asp_error;
-    //context.log_func = asp_write;
-    //context.user_data = conn;
-    //context.request.request_method = request_adapter.GetRequestMethod();
-    //context.request.query_string = request_adapter.GetQueryString();
-    //context.engine_config.root_path = conn->ctx->config[DOCUMENT_ROOT];
-    //context.engine_config.cache_path = conn->ctx->config[DOCUMENT_ROOT];
-    //context.engine_config.cache_lua = adapter->config_.cache_lua;
-    //context.engine_config.cache_luac = adapter->config_.cache_luac;
 
-    ExeciteAspPage(L, asp_path.c_str(), &context);
+    ExeciteAspPage(L, asp_path, context);
 
     lua_close(L);
+
+    // TODO: Delete directories recursively.
+    if (!upload_dir.empty())
+        rmdir(upload_dir.c_str());
 
     return 1;
 }

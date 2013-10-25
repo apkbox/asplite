@@ -385,6 +385,7 @@ int mg_url_decode(const char *src, int src_len, char *dst,
 char *mg_md5(char buf[33], ...);
 
 // Maps URL to physical path performing URL rewrite if needed.
+// Returns document root if |uri| is null.
 void mg_map_path(struct mg_connection *conn, const char *uri,
                  char *dst, int dst_len);
 

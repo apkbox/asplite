@@ -19,22 +19,30 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef ASPLITE_ASPHOST_H_562542B9_D0D5_4362_9B23_E9E1CABF9903
-#define ASPLITE_ASPHOST_H_562542B9_D0D5_4362_9B23_E9E1CABF9903
+#ifndef ASPLITE_POST_H_DE76E377_F1BF_4939_AE8E_7BD93F040F44
+#define ASPLITE_POST_H_DE76E377_F1BF_4939_AE8E_7BD93F040F44
 
 #include <string>
 #include <vector>
 
-class IAspliteConnection {
-public:
-    virtual ~IAspliteConnection() {}
+#include "asplite/asplite.h"
 
-    virtual std::string GetHeader(const char *name) const = 0;
-    virtual void SendError(int code, const char *msg,
-            const std::vector<std::string> *headers = NULL,
-            const char *body = NULL) = 0;
 
-    virtual int Read(void *buffer, size_t buffer_size) = 0;
+struct FormItem {
+    FormItem() : is_file(false) {}
+
+    std::string name;
+    std::string content_type;
+    std::string content_disposition;
+    std::string file_name;
+    std::string value;
+    bool is_file;
 };
 
-#endif // ASPLITE_ASPHOST_H_562542B9_D0D5_4362_9B23_E9E1CABF9903
+
+void ProcessPostRequest(IHttpRequestAdapter *request,
+                        IHttpResponseAdapter *response,
+                        const std::string &upload_directory,
+                        std::vector<FormItem> *form_items);
+
+#endif // ASPLITE_POST_H_DE76E377_F1BF_4939_AE8E_7BD93F040F44

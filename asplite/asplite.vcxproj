@@ -28,12 +28,12 @@
     <ClCompile Include="post.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="asphost.h" />
     <ClInclude Include="asplite.h" />
     <ClInclude Include="generator.h" />
     <ClInclude Include="membuf.h" />
     <ClInclude Include="mongoose_adapter.h" />
     <ClInclude Include="parser.h" />
+    <ClInclude Include="post.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\lualib\lualib.vcxproj">

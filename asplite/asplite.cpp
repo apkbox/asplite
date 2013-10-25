@@ -22,6 +22,7 @@
 #include "asplite/asplite.h"
 
 #include <assert.h>
+#include <ctype.h>
 #ifdef _WIN32
 #include <direct.h>
 #endif // _WIN32
@@ -33,9 +34,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <algorithm>
+#include <string>
+
 #include <Windows.h>
 
-#include "lua/lua.h"
+#include "lua/lua.hpp"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 
@@ -99,7 +103,8 @@ static void WriteToBufferCallback(const char *text, int length, void *user_data)
 
 
 static void ParserEventHandler(const char *buffer, enum ChunkType chunk_type,
-        size_t lineno, size_t begin, size_t end, void *user_data)
+                               size_t lineno, size_t begin, size_t end,
+                               void *user_data)
 {
     struct ParserData *data = (struct ParserData *)user_data;
     GenerateBodyChunk(data->handler, buffer, chunk_type, lineno, begin, end,
@@ -160,7 +165,7 @@ static int IsPrefixOf(const char *path1, const char *path2)
 
 
 static int RetargetPath(const char *ancestor, const char *path,
-        const char *new_ancestor, char *result)
+                        const char *new_ancestor, char *result)
 {
     int len = 0;
     const char *p;
@@ -189,16 +194,9 @@ static int RetargetPath(const char *ancestor, const char *path,
 }
 
 
-static int CreateDirectories(const char *path)
-{
-
-    return 0;
-}
-
-
 static struct membuf *GenerateLuaFile(const char *asp_path,
                                       const char *lua_path,
-                                      char **error_message)
+                                      std::string *error_message)
 {
     FILE *fp;
     struct stat asp_file_stat;
@@ -210,12 +208,12 @@ static struct membuf *GenerateLuaFile(const char *asp_path,
     struct ParserData parser_data;
 
     if (error_message)
-        *error_message = NULL;
+        error_message->clear();
 
     fp = fopen(asp_path, "rt");
     if (fp == NULL) {
         if (error_message)
-            *error_message = strdup(strerror(errno));
+            *error_message = strerror(errno);
         return NULL;
     }
 
@@ -225,7 +223,7 @@ static struct membuf *GenerateLuaFile(const char *asp_path,
             MAP_PRIVATE, _fileno(fp), 0);
     if (asp_content == NULL) {
         if (error_message)
-            *error_message = strdup("mmap failed.");
+            *error_message = "mmap failed.";
         fclose(fp);
         return NULL;
     }
@@ -264,67 +262,46 @@ static struct membuf *GenerateLuaFile(const char *asp_path,
 }
 
 
-int CompileAspPage(lua_State *L, const char *asp_path,
-        const struct AspEngineConfig *config, char **error_message)
+int CompileAspPage(lua_State *L, const std::string &asp_path,
+                   const struct AspliteCompilerParameters *params,
+                   std::string *error_message)
 {
-    int requires_recompilation = 0;
     struct _stat asp_file_stat;
     struct _stat luac_file_stat;
-    char cache_path[MAX_PATH];
-    char lua_file[MAX_PATH];
-    char luac_file[MAX_PATH];
     struct membuf *lua_content;
     lua_State *LL;
     int result;
     struct ReaderState reader_state;
-    int use_cache;
-
-    assert(((!config->cache_lua && !config->cache_luac) ||
-            ((config->cache_lua || config->cache_luac)) &&
-            config->root_path && config->cache_path));
 
     if (error_message != NULL)
-        *error_message = NULL;
+        error_message->clear();
 
-    if (config->cache_path && !RetargetPath(config->root_path, asp_path,
-            config->cache_path, cache_path)) {
-        use_cache = config->cache_lua || config->cache_luac;
-    }
-    else {
-        use_cache = 0;
-    }
-
-    if (_stat(asp_path, &asp_file_stat) != 0) {
+    if (_stat(asp_path.c_str(), &asp_file_stat) != 0) {
         if (error_message)
-            *error_message = strdup(strerror(errno));
+            *error_message = strerror(errno);
         return errno;
     }
 
-    requires_recompilation = 1;
+    bool requires_recompilation = true;
 
-    if (use_cache) {
-        CreateDirectories(cache_path);
-        strcat(strcpy(lua_file, cache_path), ".lua");
-        strcat(strcpy(luac_file, cache_path), ".luac");
-
-        if (_stat(luac_file, &luac_file_stat) == 0) {
+    if (!params->luac_path.empty()) {
+        if (_stat(params->luac_path.c_str(), &luac_file_stat) == 0) {
             if (asp_file_stat.st_mtime < luac_file_stat.st_mtime)
-                requires_recompilation = 0;
+                requires_recompilation = false;
         }
     }
 
     if (requires_recompilation) {
-        lua_content = GenerateLuaFile(asp_path,
-                (use_cache && config->cache_lua) ? lua_file : NULL,
+        lua_content = GenerateLuaFile(asp_path.c_str(), params->lua_path.c_str(),
                 error_message);
         if (lua_content == NULL)
             return 1;
     }
     else {
-        FILE *luac_fp = fopen(luac_file, "rb");
+        FILE *luac_fp = fopen(params->luac_path.c_str(), "rb");
         if (luac_fp == NULL) {
             if (error_message)
-                *error_message = strdup(strerror(errno));
+                *error_message = strerror(errno);
             return 1;
         }
 
@@ -337,11 +314,12 @@ int CompileAspPage(lua_State *L, const char *asp_path,
     reader_state.end = (char *)membuf_end(lua_content);
 
     LL = L ? L : luaL_newstate();
-    result = lua_load(LL, StringStreamReader, &reader_state, asp_path, NULL);
+    result = lua_load(LL, StringStreamReader, &reader_state,
+            asp_path.c_str(), NULL);
     if (result != LUA_OK) {
         membuf_close(lua_content);
         if (error_message)
-            *error_message = strdup(lua_tostring(LL, -1));
+            *error_message = lua_tostring(LL, -1);
         if (L == NULL)
             lua_close(LL);
         return 1;
@@ -349,10 +327,10 @@ int CompileAspPage(lua_State *L, const char *asp_path,
 
     membuf_close(lua_content);
 
-    if (use_cache && requires_recompilation && config->cache_luac) {
+    if (requires_recompilation && !params->luac_path.empty()) {
         struct FileWriterState writer_state;
 
-        writer_state.fp = fopen(luac_file, "wb");
+        writer_state.fp = fopen(params->luac_path.c_str(), "wb");
         if (writer_state.fp != NULL) {
             lua_dump(LL, FileWriter, &writer_state);
             fclose(writer_state.fp);
@@ -362,7 +340,7 @@ int CompileAspPage(lua_State *L, const char *asp_path,
     if (L != NULL) {
         result = lua_pcall(LL, 0, 0, 0);
         if (result && error_message)
-            *error_message = strdup(lua_tostring(LL, -1));
+            *error_message = lua_tostring(LL, -1);
     }
     else {
         lua_close(LL);
@@ -381,8 +359,8 @@ struct AspliteCallbackUserdata
 
 static int asplite_Write(lua_State *L)
 {
-    struct AspPageContext *context =
-            (struct AspPageContext *)lua_touserdata(L, lua_upvalueindex(1));
+    const AspPageContext *context = reinterpret_cast<AspPageContext *>(
+            lua_touserdata(L, lua_upvalueindex(1)));
     assert(context != NULL);
     assert(context->response != NULL);
     context->response->Write(lua_tostring(L, 1));
@@ -392,8 +370,8 @@ static int asplite_Write(lua_State *L)
 
 static int asplite_Error(lua_State *L)
 {
-    struct AspPageContext *context =
-        (struct AspPageContext *)lua_touserdata(L, lua_upvalueindex(1));
+    const AspPageContext *context = reinterpret_cast<AspPageContext *>(
+            lua_touserdata(L, lua_upvalueindex(1)));
     assert(context != NULL);
     assert(context->server != NULL);
     context->server->OnError(lua_tostring(L, 1));
@@ -403,8 +381,8 @@ static int asplite_Error(lua_State *L)
 
 static int asplite_WriteLog(lua_State *L)
 {
-    struct AspPageContext *context =
-        (struct AspPageContext *)lua_touserdata(L, lua_upvalueindex(1));
+    const AspPageContext *context = reinterpret_cast<AspPageContext *>(
+            lua_touserdata(L, lua_upvalueindex(1)));
     assert(context != NULL);
     assert(context->server != NULL);
     context->server->WriteLog(lua_tostring(L, 1));
@@ -412,17 +390,44 @@ static int asplite_WriteLog(lua_State *L)
 }
 
 
-void ExeciteAspPage(lua_State *L, const char *asp_page,
-                    const struct AspPageContext *context)
+static bool CreateDirectoriesRecursively(const std::string &base_dir,
+                                         const std::string &rel_path)
 {
-    void *compiled_page = NULL;
+    std::string path(base_dir);
+    std::string rpath(rel_path);
+
+    while (true) {
+        if (mkdir(path.c_str()) && errno != EEXIST)
+            return false;
+
+        if (rpath.empty())
+            break;
+
+        std::string::size_type sep = rpath.find('\\');
+        if (sep != std::string::npos) {
+            path += '\\';
+            path += rpath.substr(0, sep);
+            rpath.erase(0, sep + 1);
+        }
+        else {
+            path += '\\';
+            path += rpath;
+            rpath.clear();
+        }
+    }
+
+    return true;
+}
+
+
+void ExeciteAspPage(lua_State *L, const std::string &asp_path,
+                    const AspPageContext &context)
+{
     int result;
-    char *error_message = NULL;
+    std::string error_message;
 
     int stack = lua_gettop(L);
-
     luaL_openlibs(L);
-
     luaopen_asplite(L);
 
     // create and populate 'context' table
@@ -430,17 +435,17 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     lua_newtable(L);
 
     lua_pushstring(L, "write_func");
-    lua_pushlightuserdata(L, (void *)context);
+    lua_pushlightuserdata(L, (void *)&context);
     lua_pushcclosure(L, asplite_Write, 1);
     lua_settable(L, -3);
 
     lua_pushstring(L, "error_func");
-    lua_pushlightuserdata(L, (void *)context);
+    lua_pushlightuserdata(L, (void *)&context);
     lua_pushcclosure(L, asplite_Error, 1);
     lua_settable(L, -3);
 
     lua_pushstring(L, "log_func");
-    lua_pushlightuserdata(L, (void *)context);
+    lua_pushlightuserdata(L, (void *)&context);
     lua_pushcclosure(L, asplite_WriteLog, 1);
     lua_settable(L, -3);
 
@@ -449,15 +454,18 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     lua_newtable(L);
 
     lua_pushstring(L, "QUERY_STRING");
-    lua_pushstring(L, context->request->GetQueryString().c_str());
+    lua_pushstring(L, context.request->GetQueryString().c_str());
     lua_settable(L, -3);
 
     lua_pushstring(L, "HTTP_METHOD");
-    lua_pushstring(L, context->request->GetRequestMethod().c_str());
+    lua_pushstring(L, context.request->GetRequestMethod().c_str());
     lua_settable(L, -3);
+
     lua_pushstring(L, "REQUEST_METHOD");
-    lua_pushstring(L, context->request->GetRequestMethod().c_str());
+    lua_pushstring(L, context.request->GetRequestMethod().c_str());
     lua_settable(L, -3);
+
+    // TODO: Populate form/files
 
     // set context.request field
     lua_settable(L, -3);
@@ -467,24 +475,58 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
 
     lua_pop(L, 1); // pop asplite table
 
-    AspEngineConfig engine_config;
-    engine_config.cache_lua = context->config->cache_lua;
-    engine_config.cache_luac = context->config->cache_luac;
-    // TODO: let the function know ahead of time where each patch will be
-    //      asp file path
-    //      lua file path
-    //      luac file path
-    //engine_config.cache_path = context->config->cache_directory.c_str();
-    // TODO: document path.
-    //engine_config.upload_path = context->config->upload_directory.c_str();
+    AspliteCompilerParameters params;
 
-    result = CompileAspPage(L, asp_page, &engine_config, &error_message);
+    if (!context.config->cache_directory.empty()) {
+
+        // Check if doc_root is a prefix of ASP path, then
+        // if so, extract asp relative path.
+        std::string document_root = context.server->MapPath(std::string());
+        if (!document_root.empty() && asp_path.find(document_root) == 0) {
+            // Assign cache paths
+            std::string cache_directory(context.config->cache_directory);
+            std::string document_path(asp_path.substr(document_root.length()));
+
+#ifdef _WIN32
+            // Normalize separators
+            std::replace(cache_directory.begin(), cache_directory.end(),
+                    '/', '\\');
+            std::replace(document_path.begin(), document_path.end(), '/', '\\');
+#endif
+            // Remove trailing separator
+            if (*(cache_directory.end() - 1) == '\\')
+                cache_directory.resize(cache_directory.length() - 1);
+
+            // Remove leading separator
+            if (document_path.length() > 0 && document_path[0] == '\\')
+                document_path.erase(document_path.begin());
+
+            // Create relative path to document's directory
+            std::string document_dir(document_path);
+            std::string::size_type last_sep = document_dir.find_last_of('\\');
+            if (last_sep != std::string::npos)
+                document_dir.erase(last_sep);
+            else
+                document_dir.clear();
+
+            CreateDirectoriesRecursively(cache_directory, document_dir);
+
+            if (context.config->cache_lua) {
+                params.lua_path = cache_directory + "\\" + document_path + ".lua";
+            }
+
+            if (context.config->cache_luac) {
+                params.luac_path = cache_directory + "\\" + document_path + ".luac";
+            }
+        }
+    }
+
+    result = CompileAspPage(L, asp_path, &params, &error_message);
     if (result) {
-        lua_pushlightuserdata(L, (void *)context);
+        lua_pushlightuserdata(L, (void *)&context);
         lua_pushcclosure(L, asplite_Error, 1);
-        lua_pushstring(L, error_message);
+        lua_pushstring(L, error_message.c_str());
         lua_call(L, 1, 0);
-        free(error_message);
         assert(stack == lua_gettop(L));
         return;
     }
@@ -500,7 +542,7 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     }
 
     if (result != LUA_OK) {
-        lua_pushlightuserdata(L, (void *)context);
+        lua_pushlightuserdata(L, (void *)&context);
         lua_pushcclosure(L, asplite_Error, 1);
         lua_pushvalue(L, -2);
         lua_call(L, 1, 0);
@@ -509,4 +551,39 @@ void ExeciteAspPage(lua_State *L, const char *asp_page,
     assert(stack == lua_gettop(L));
 
     return;
+}
+
+
+static bool StringToBoolean(const std::string &str)
+{
+    if (str == "true" || str == "1" || str == "yes")
+        return true;
+
+    return false;
+}
+
+
+bool IsAspliteOption(const std::string &option)
+{
+    return option == "cache_lua" || option == "cache_luac" ||
+            option == "cache_directory" || option == "upload_directory";
+}
+
+
+bool SetAspliteOption(AspliteConfig *config,
+                      const std::string &option,
+                      const std::string &value)
+{
+    if (option == "cache_lua")
+        config->cache_lua = StringToBoolean(value);
+    else if (option == "cache_luac")
+        config->cache_luac = StringToBoolean(value);
+    else if (option == "cache_directory")
+        config->cache_directory = value;
+    else if (option == "upload_directory")
+        config->upload_directory = value;
+    else
+        return false;
+
+    return true;
 }

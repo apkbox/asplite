@@ -5477,6 +5477,11 @@ void mg_map_path(struct mg_connection *conn, const char *uri,
     const char *rewrite, *root = conn->ctx->config[DOCUMENT_ROOT];
     int match_len;
 
+    if (uri == NULL) {
+        mg_snprintf(conn, dst, dst_len, "%s", root == NULL ? "" : root);
+        return;
+    }
+
     // If document_root is NULL, leave the file empty.
     mg_snprintf(conn, dst, dst_len, "%s%s",
             root == NULL ? "" : root,
