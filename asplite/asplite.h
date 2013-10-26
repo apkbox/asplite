@@ -43,10 +43,14 @@ public:
     virtual ~IHttpServerAdapter() {}
 
     virtual std::string MapPath(const std::string &uri) = 0;
+    virtual std::string UriToFile(const std::string &uri) = 0;
+
     virtual void OnError(const char *text) = 0;
     virtual void WriteLog(const char *text) = 0;
 };
 
+
+typedef std::vector<std::string> HttpFilesCollection;
 
 class IHttpRequestAdapter {
 public:
@@ -58,6 +62,8 @@ public:
 
     virtual const std::vector<HttpHeader> &GetHeaders() const = 0;
     virtual std::string GetHeader(const char *name) const = 0;
+
+    virtual const HttpFilesCollection &GetFiles() const = 0;
 
     virtual int Read(void *buffer, size_t buffer_size) = 0;
 };

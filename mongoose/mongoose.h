@@ -385,9 +385,13 @@ int mg_url_decode(const char *src, int src_len, char *dst,
 char *mg_md5(char buf[33], ...);
 
 // Maps URL to physical path performing URL rewrite if needed.
-// Returns document root if |uri| is null.
-void mg_map_path(struct mg_connection *conn, const char *uri,
-                 char *dst, int dst_len);
+// If |to_file| specified then function tries to resolve URI to a file.
+// If |to_file| holds then function returns 0, if |uri| resolves
+// to an existing file, otherwise function returns -1.
+// If |to_file| is 0 then function always succeedes and returns 0.
+// The function consults list of index files when |to_file| is specified.
+int mg_map_path(struct mg_connection *conn, const char *uri,
+                int to_file, char *dst, int dst_len);
 
 #ifdef __cplusplus
 }

@@ -61,14 +61,68 @@ asplite.ReadEntityBodyMode = {
 	Classic = 3
 };
 
-asplite.CreateRequestObject = function(variables)
+
+asplite.CreateServerObject = function(mapPathCallback)
 	local object = {
 		prototype = {
-			queryString_ = asplite.ParseQueryString(variables['QUERY_STRING']);
+			mapPathCallback_ = mapPathCallback;
+		};
+	};
+
+	function object.prototype:mapPath_(uri)
+		return self.mapPathCallback_(uri);
+	end
+
+	object.propertyMap__ = {
+		['MapPath'] = object.prototype.mapPath_;
+	};
+
+	local function getprop__(t, k)
+		local entry = rawget(t, 'propertyMap__')[k];
+		if type(entry) == 'function' then
+			return function(...) return entry(t.prototype, ...); end;
+		elseif type(entry) == 'table' then
+			if entry.get then
+				return entry.get(t.prototype);
+			else
+				error('Property is write-only');
+			end
+		else
+			error('Undefined property ' .. k, 2);
+		end
+	end
+
+	local function setprop__(t, k, v)
+		local entry = rawget(t, 'propertyMap__')[k];
+		if type(entry) == 'table' then
+			if entry.set then
+				entry.set(t.prototype, v);
+			else
+				error('Property is read-only');
+			end
+		else
+			error('Undefined property ' .. k);
+		end
+	end
+
+	local metatable__ = {
+		__index = getprop__;
+		__newindex = setprop__;
+	};
+
+	setmetatable(object, metatable__);
+	return object;
+end
+
+
+asplite.CreateRequestObject = function(request)
+	local object = {
+		prototype = {
+			queryString_ = asplite.ParseQueryString(request.ServerVariables['QUERY_STRING']);
 			cookies_ = {};
 			form_ = {};
-			files_ = {};
-			serverVariables_ = variables;
+			files_ = request.Files;
+			serverVariables_ = request.ServerVariables;
 			totalBytes_ = {};
 
 			readEntityBodyMode_ = asplite.ReadEntityBodyMode.None;
@@ -131,7 +185,7 @@ asplite.CreateRequestObject = function(variables)
 			error('entity already read', 2);
 		end
 		self.readEntityBodyMode_ = asplite.ReadEntityBodyMode.Classic;
-		-- asplite.ParseRequestBody();
+		-- TODO: asplite.ParseRequestBody();
 		return self.form_;
 	end
 
@@ -141,7 +195,7 @@ asplite.CreateRequestObject = function(variables)
 			error('entity already read', 2);
 		end
 		self.readEntityBodyMode_ = asplite.ReadEntityBodyMode.Classic;
-		-- asplite.ParseRequestBody();
+		-- TODO: asplite.ParseRequestBody();
 		return self.files_;
 	end
 
@@ -517,8 +571,9 @@ end
 
 
 asplite.InitAspEnvironment = function(context)
-	Response = asplite.CreateResponseObject(context.write_func, context.log_func);
+	Server = asplite.CreateServerObject(context.map_path);
 	Request = asplite.CreateRequestObject(context.request);
+	Response = asplite.CreateResponseObject(context.write_func, context.log_func);
 end
 
 local res, msg = pcall(asplite.InitAspEnvironment, asplite.context);

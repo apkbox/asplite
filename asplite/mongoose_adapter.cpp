@@ -45,9 +45,18 @@ public:
 
     std::string MapPath(const std::string &uri) override {
         // TODO: Make it more versatile
-        char buffer[1024];
-        mg_map_path(conn_, uri.c_str(), buffer, sizeof(buffer));
+        char buffer[4096];
+        mg_map_path(conn_, uri.c_str(), 0, buffer, sizeof(buffer));
         return std::string(buffer);
+    }
+
+    std::string UriToFile(const std::string &uri) override {
+        // TODO: Make it more versatile
+        char buffer[4096];
+        if (mg_map_path(conn_, uri.c_str(), 1, buffer, sizeof(buffer)) == 0)
+            return std::string(buffer);
+        else
+            return std::string();
     }
 
     void OnError(const char *text) override {
@@ -100,18 +109,26 @@ public:
         return std::string();
     }
 
+    const std::vector<std::string> &GetFiles() const override {
+        return files_;
+    }
+
     int Read(void *buffer, size_t buffer_size) override {
         return mg_read(conn_, buffer, buffer_size);
     }
 
     void SetFormData(const std::vector<FormItem> &form_items) {
-        // TODO: Move form data
+        for (auto iter = form_items.begin(); iter != form_items.end(); ++iter) {
+            if (iter->is_file)
+                files_.push_back(iter->file_name);
+        }
     }
 
 private:
     struct mg_connection *conn_;
     struct mg_request_info *request_info_;
     std::vector<HttpHeader> headers_;
+    std::vector<std::string> files_;
 };
 
 
@@ -183,6 +200,16 @@ static bool CreateRequestUploadDirectory(const std::string &upload_dir,
 }
 
 
+static bool IsEndWith(const std::string &str, const std::string &suffix)
+{
+    if (str.length() < suffix.length())
+        return false;
+
+    return str.compare(str.length() - suffix.length(),
+            suffix.length(), suffix) == 0;
+}
+
+
 int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
 {
     struct mg_request_info *request_info = mg_get_request_info(conn);
@@ -192,15 +219,34 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
     MongooseHttpResponseAdapter response_adapter(conn);
     MongooseHttpServerAdapter server_adapter(conn);
 
+    std::string asp_path = server_adapter.UriToFile(request_adapter.GetUri());
+    if (asp_path.empty()) {
+        // File not found
+        return 0;
+    }
+
+    if (!IsEndWith(asp_path, ".asp") && !IsEndWith(asp_path, ".aspx")) {
+        // Not an ASP file
+        return 0;
+    }
+
     std::vector<FormItem> form_items;
-    std::string upload_dir;
+    std::string request_upload_directory;
 
     if (request_adapter.GetRequestMethod() == "POST") {
+        // TODO: Do not parse the body because the page code
+        // may be interested in special handling of entity.
+        // Instead provide asplite.ParseRequestBody method and
+        // asplite.RequestUploadDirectory property.
+        // The method is called whenever Form or Files collection
+        // requested.
+        // If page code does not access neither Form or Files collection
+        // nor reads the input stream, read content after processing the page.
         CreateRequestUploadDirectory(adapter->config_.upload_directory,
-                &upload_dir);
+                &request_upload_directory);
 
         ProcessPostRequest(&request_adapter, &response_adapter,
-                upload_dir, &form_items);
+                request_upload_directory, &form_items);
 
         request_adapter.SetFormData(form_items);
     }
@@ -209,12 +255,6 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
     }
     else {
         response_adapter.Respond405("GET, POST", "");
-    }
-
-    std::string asp_path = server_adapter.MapPath(request_adapter.GetUri());
-    if (asp_path.empty()) {
-        // TODO: Respond with error
-        return 0;
     }
 
     lua_State *L = luaL_newstate();
@@ -229,9 +269,14 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
 
     lua_close(L);
 
-    // TODO: Delete directories recursively.
-    if (!upload_dir.empty())
-        rmdir(upload_dir.c_str());
+    if (!request_upload_directory.empty()) {
+        for (auto iter = form_items.begin(); iter != form_items.end(); ++iter) {
+            if (iter->is_file)
+                remove(iter->file_name.c_str());
+        }
+
+        rmdir(request_upload_directory.c_str());
+    }
 
     return 1;
 }

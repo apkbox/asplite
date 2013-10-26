@@ -379,6 +379,18 @@ static int asplite_Error(lua_State *L)
 }
 
 
+static int asplite_MapPath(lua_State *L)
+{
+    const AspPageContext *context = reinterpret_cast<AspPageContext *>(
+        lua_touserdata(L, lua_upvalueindex(1)));
+    assert(context != NULL);
+    assert(context->server != NULL);
+    const char *uri = lua_tostring(L, 1);
+    lua_pushstring(L, context->server->MapPath(uri ? uri : std::string()).c_str());
+    return 1;
+}
+
+
 static int asplite_WriteLog(lua_State *L)
 {
     const AspPageContext *context = reinterpret_cast<AspPageContext *>(
@@ -449,8 +461,17 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     lua_pushcclosure(L, asplite_WriteLog, 1);
     lua_settable(L, -3);
 
+    lua_pushstring(L, "map_path");
+    lua_pushlightuserdata(L, (void *)&context);
+    lua_pushcclosure(L, asplite_MapPath, 1);
+    lua_settable(L, -3);
+
     // create request table
     lua_pushstring(L, "request");
+    lua_newtable(L);
+
+    // context.request.ServerVariables table
+    lua_pushstring(L, "ServerVariables");
     lua_newtable(L);
 
     lua_pushstring(L, "QUERY_STRING");
@@ -465,7 +486,23 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     lua_pushstring(L, context.request->GetRequestMethod().c_str());
     lua_settable(L, -3);
 
-    // TODO: Populate form/files
+    // set request.ServerVariables field
+    lua_settable(L, -3);
+
+    // context.request.Files table
+    lua_pushstring(L, "Files");
+    lua_newtable(L);
+
+    const HttpFilesCollection &files = context.request->GetFiles();
+    int index = 1;
+    for (auto iter = files.begin(); iter != files.end(); ++iter) {
+        lua_pushinteger(L, index++);
+        lua_pushstring(L, iter->c_str());
+        lua_settable(L, -3);
+    }
+
+    // set context.request.Files field
+    lua_settable(L, -3);
 
     // set context.request field
     lua_settable(L, -3);

@@ -3106,7 +3106,7 @@ static int read_request(FILE *fp, struct mg_connection *conn,
 }
 
 // For given directory path, substitute it to valid index file.
-// Return 0 if index file has been found, -1 if not found.
+// Return 1 if index file has been found, 0 if not found.
 // If the file is found, it's stats is returned in stp.
 static int substitute_index_file(struct mg_connection *conn, char *path,
                                  size_t path_len, struct file *filep) {
@@ -4273,11 +4273,6 @@ static uint32_t get_remote_ip(const struct mg_connection *conn) {
 #include "mod_lua.c"
 #endif // USE_LUA
 
-#ifdef USE_ASPLITE
-#include "asplite/asplite.h"
-#include "mod_asplite.c"
-#endif // USE_ASPLITE
-
 int mg_upload(struct mg_connection *conn, const char *destination_dir) {
   const char *content_type_header, *boundary_start;
   char buf[MG_BUF_LEN], path[PATH_MAX], fname[1024], boundary[100], *s;
@@ -4512,10 +4507,6 @@ static void handle_request(struct mg_connection *conn) {
   } else if (match_prefix("**.lp$", 6, path) > 0) {
     handle_lsp_request(conn, path, &file, NULL);
 #endif
-#ifdef USE_ASPLITE
-  } else if (match_prefix("**.asp$", 7, path) > 0) {
-    handle_asp_request(conn, path, &file);
-#endif // USE_ASPLITE
 #if !defined(NO_CGI)
   } else if (match_prefix(conn->ctx->config[CGI_EXTENSIONS],
                           strlen(conn->ctx->config[CGI_EXTENSIONS]),
@@ -5470,17 +5461,12 @@ struct mg_context *mg_start(const struct mg_callbacks *callbacks,
 }
 
 
-void mg_map_path(struct mg_connection *conn, const char *uri,
-                 char *dst, int dst_len)
+int mg_map_path(struct mg_connection *conn, const char *uri,
+                int to_file, char *dst, int dst_len)
 {
     struct vec a, b;
     const char *rewrite, *root = conn->ctx->config[DOCUMENT_ROOT];
     int match_len;
-
-    if (uri == NULL) {
-        mg_snprintf(conn, dst, dst_len, "%s", root == NULL ? "" : root);
-        return;
-    }
 
     // If document_root is NULL, leave the file empty.
     mg_snprintf(conn, dst, dst_len, "%s%s",
@@ -5495,5 +5481,15 @@ void mg_map_path(struct mg_connection *conn, const char *uri,
             break;
         }
     }
-}
 
+    if (to_file) {
+        struct file file_info;
+        if (!mg_stat(conn, dst, &file_info))
+            return -1;
+
+        if (file_info.is_directory)
+            return !substitute_index_file(conn, dst, dst_len, &file_info);
+    }
+
+    return 0;
+}
