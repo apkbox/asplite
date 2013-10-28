@@ -24,12 +24,12 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "lua/lua.hpp"
 
 
-class HttpHeader {
-public:
+struct HttpHeader {
     HttpHeader(const char *name, const char *value)
         : name(name), value(value) {}
 
@@ -50,7 +50,111 @@ public:
 };
 
 
+typedef std::vector<std::string> HttpStringList;
 typedef std::vector<std::string> HttpFilesCollection;
+
+class NameValueCollection {
+public:
+    bool Add(const std::string &name, const std::string &value) {
+        auto iter = keys_.find(name);
+        if (iter == keys_.end()) {
+            keys_[name] = values_.size();
+            values_.push_back(Pair(name, value));
+            return true;
+        }
+        else {
+            values_[iter->second].values.push_back(value);
+            return false;
+        }
+    }
+    
+    std::string Get(size_t index) const {
+        const Pair &pair = values_[index];
+        std::string str;
+        for (auto iter = pair.values.begin(); iter != pair.values.end(); ++iter) {
+            str += *iter;
+            if (iter + 1 != pair.values.end())
+                str += ',';
+        }
+        
+        return str;
+    }
+    
+    // TODO: Distinguish between not found and null.
+    std::string Get(const std::string &name) const {
+        auto iter = keys_.find(name);
+        if (iter != keys_.end())
+            return Get(iter->second);
+        else
+            return std::string();
+    }
+    
+    std::string GetKey(size_t index) const {
+        return values_[index].key;
+    }
+
+    std::vector<std::string> GetValues(size_t index) const {
+        return values_[index].values;
+    }
+
+    std::vector<std::string> GetValues(const std::string &name) {
+        auto iter = keys_.find(name);
+        if (iter != keys_.end())
+            return GetValues(iter->second);
+        else
+            return std::vector<std::string>();
+    }
+    
+    void Clear() {
+        keys_.clear();
+        values_.clear();
+    }
+    
+    std::vector<std:string> AllKeys() const {
+        std::vector<std:string> keys;
+        for (auto iter = keys_.begin(); iter != keys_.end(); ++iter) {
+            keys.push_back(iter->first);
+        }
+        return keys;
+    }
+    
+    bool Set(const std::string &name, const std::string &value) {
+        auto iter = keys_.find(name);
+        if (iter == keys_.end()) {
+            keys_[name] = values_.size();
+            values_.push_back(Pair(name, value));
+            return true;
+        }
+        else {
+            values_[iter->second_].values.clear();
+            values_[iter->second_].push_back(value);
+            return false;
+        }
+    }
+    
+    bool Remove(const std::string &name) {
+        auto iter = keys_.find(name);
+        if (iter == keys_.end())
+            return false;
+            
+        values_.erase(values_.begin() + iter->second);
+        keys_.erase(iter);
+        return true;
+    }
+
+private:
+    struct Pair {
+        Pair(const std::string &key, const std::string &value)
+            : key(key) { values.push_back(value); }
+    
+        std::string key;
+        std::vector<std::string> values;
+    };
+
+    std::map<std::string, std::vector::size_type> keys_;
+    std::vector<Pair> values_;
+};
+
 
 class IHttpRequestAdapter {
 public:
@@ -63,6 +167,7 @@ public:
     virtual const std::vector<HttpHeader> &GetHeaders() const = 0;
     virtual std::string GetHeader(const char *name) const = 0;
 
+    virtual NameValueCollection &GetForm() = 0;
     virtual const HttpFilesCollection &GetFiles() const = 0;
 
     virtual int Read(void *buffer, size_t buffer_size) = 0;

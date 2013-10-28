@@ -109,7 +109,11 @@ public:
         return std::string();
     }
 
-    const std::vector<std::string> &GetFiles() const override {
+    NameValueCollection &GetForm() override {
+        return form_;
+    }
+
+    const HttpFilesCollection &GetFiles() const override {
         return files_;
     }
 
@@ -121,6 +125,9 @@ public:
         for (auto iter = form_items.begin(); iter != form_items.end(); ++iter) {
             if (iter->is_file)
                 files_.push_back(iter->file_name);
+            else {
+                form_.Add(iter->name, iter->value);
+            }
         }
     }
 
@@ -128,6 +135,7 @@ private:
     struct mg_connection *conn_;
     struct mg_request_info *request_info_;
     std::vector<HttpHeader> headers_;
+    NameValueCollection form_;
     std::vector<std::string> files_;
 };
 
@@ -242,6 +250,8 @@ int AspliteMongooseAdapter::RequestHandler(struct mg_connection *conn)
         // requested.
         // If page code does not access neither Form or Files collection
         // nor reads the input stream, read content after processing the page.
+        // Should we parse POST before handling ASP if it is 
+        // multipart/form-data or application/x-www-form-urlencoded?
         CreateRequestUploadDirectory(adapter->config_.upload_directory,
                 &request_upload_directory);
 

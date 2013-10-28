@@ -489,6 +489,23 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     // set request.ServerVariables field
     lua_settable(L, -3);
 
+    // context.request.Form table
+    lua_pushstring(L, "Form");
+    lua_newtable(L);
+
+    // TODO: Make a Lua wrapper around NameValueCollection instead
+    // of copying.
+    const NameValueCollection &form = context.request->GetForm();
+    // CreateFormObject(L, form);
+    //for (auto iter = form.begin(); iter != form.end(); ++iter) {
+    //    lua_pushstring(L, iter->first.c_str());
+    //    lua_pushstring(L, iter->second.c_str());
+    //    lua_settable(L, -3);
+    //}
+
+    // set context.request.Form field
+    lua_settable(L, -3);
+
     // context.request.Files table
     lua_pushstring(L, "Files");
     lua_newtable(L);
