@@ -21,9 +21,11 @@
   <ItemGroup>
     <ClCompile Include="generator.cpp" />
     <ClCompile Include="asplite.cpp" />
+    <ClCompile Include="luanvcoll.cpp" />
     <ClCompile Include="membuf.cpp" />
     <ClCompile Include="luamod.cpp" />
     <ClCompile Include="mongoose_adapter.cpp" />
+    <ClCompile Include="nvcoll.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="post.cpp" />
   </ItemGroup>

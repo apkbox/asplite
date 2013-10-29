@@ -55,92 +55,18 @@ typedef std::vector<std::string> HttpFilesCollection;
 
 class NameValueCollection {
 public:
-    bool Add(const std::string &name, const std::string &value) {
-        auto iter = keys_.find(name);
-        if (iter == keys_.end()) {
-            keys_[name] = values_.size();
-            values_.push_back(Pair(name, value));
-            return true;
-        }
-        else {
-            values_[iter->second].values.push_back(value);
-            return false;
-        }
-    }
+    typedef std::vector<std::string> value_list_type;
 
-    std::string Get(size_t index) const {
-        const Pair &pair = values_[index];
-        std::string str;
-        for (auto iter = pair.values.begin(); iter != pair.values.end(); ++iter) {
-            str += *iter;
-            if (iter + 1 != pair.values.end())
-                str += ',';
-        }
-
-        return str;
-    }
-
-    // TODO: Distinguish between not found and null.
-    std::string Get(const std::string &name) const {
-        auto iter = keys_.find(name);
-        if (iter != keys_.end())
-            return Get(iter->second);
-        else
-            return std::string();
-    }
-
-    std::string GetKey(size_t index) const {
-        return values_[index].key;
-    }
-
-    std::vector<std::string> GetValues(size_t index) const {
-        return values_[index].values;
-    }
-
-    std::vector<std::string> GetValues(const std::string &name) {
-        auto iter = keys_.find(name);
-        if (iter != keys_.end())
-            return GetValues(iter->second);
-        else
-            return std::vector<std::string>();
-    }
-
-    void Clear() {
-        keys_.clear();
-        values_.clear();
-    }
-
-    std::vector<std::string> AllKeys() const {
-        std::vector<std::string> keys;
-        for (auto iter = keys_.begin(); iter != keys_.end(); ++iter) {
-            keys.push_back(iter->first);
-        }
-        return keys;
-    }
-
-    bool Set(const std::string &name, const std::string &value) {
-        auto iter = keys_.find(name);
-        if (iter == keys_.end()) {
-            keys_[name] = values_.size();
-            values_.push_back(Pair(name, value));
-            return true;
-        }
-        else {
-            values_[iter->second].values.clear();
-            values_[iter->second].values.push_back(value);
-            return false;
-        }
-    }
-
-    bool Remove(const std::string &name) {
-        auto iter = keys_.find(name);
-        if (iter == keys_.end())
-            return false;
-
-        values_.erase(values_.begin() + iter->second);
-        keys_.erase(iter);
-        return true;
-    }
+    bool Add(const std::string &name, const std::string &value);
+    std::string Get(size_t index) const;
+    std::string Get(const std::string &name) const;
+    std::string GetKey(size_t index) const;
+    value_list_type GetValues(size_t index) const;
+    value_list_type GetValues(const std::string &name);
+    void Clear();
+    value_list_type AllKeys() const;
+    bool Set(const std::string &name, const std::string &value);
+    bool Remove(const std::string &name);
 
 private:
     struct Pair {
@@ -148,11 +74,14 @@ private:
             : key(key) { values.push_back(value); }
 
         std::string key;
-        std::vector<std::string> values;
+        value_list_type values;
     };
 
-    std::map<std::string, std::vector<Pair>::size_type> keys_;
-    std::vector<Pair> values_;
+    typedef std::vector<Pair> pair_list_type;
+    typedef std::map<std::string, pair_list_type::size_type> key_map_type;
+
+    key_map_type keys_;
+    pair_list_type values_;
 };
 
 
@@ -240,6 +169,7 @@ bool SetAspliteOption(AspliteConfig *asplite,
                       const std::string &value);
 
 int luaopen_asplite(lua_State *L);
+int luaopen_nvcoll(lua_State *L, NameValueCollection *collection);
 
 
 #endif // ASPLITE_ASPLITE_H_562542B9_D0D5_4362_9B23_E9E1CABF9903

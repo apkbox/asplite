@@ -26,6 +26,7 @@
 #include "lua/lauxlib.h"
 
 
+namespace {
 inline NameValueCollection *GetColl(lua_State *L)
 {
     return reinterpret_cast<NameValueCollection *>(
@@ -33,7 +34,8 @@ inline NameValueCollection *GetColl(lua_State *L)
 }
 
 
-static void StringVectorToLuaArray(lua_State *L, const std::vector<std::string> &values)
+void StringVectorToLuaArray(lua_State *L,
+                            NameValueCollection::value_list_type &values)
 {
     lua_newtable(L);
     int index = 0;
@@ -42,6 +44,7 @@ static void StringVectorToLuaArray(lua_State *L, const std::vector<std::string> 
         lua_rawseti(L, -2, ++index);
     }
 }
+} // namespace
 
 
 // TODO: Add __index and __newindex metamodel
@@ -60,7 +63,6 @@ int nvcoll_Add(lua_State *L)
 }
 
 
-
 int nvcoll_Get(lua_State *L)
 {
     NameValueCollection *coll = GetColl(L);
@@ -70,13 +72,11 @@ int nvcoll_Get(lua_State *L)
     // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
-    
+
         value = coll->Get(index);
     }
     else {
-        lua_checktype(L, 1, LUA_TSTRING);
-        const char *name = luaL_checkunsigned(L, 1);
-    
+        const char *name = luaL_checkstring(L, 1);
         value = coll->Get(name);
     }
 
@@ -99,18 +99,18 @@ int nvcoll_GetValues(lua_State *L)
 {
     NameValueCollection *coll = GetColl(L);
 
-    std::vector<std::string> values;
-    
+    NameValueCollection::value_list_type values;
+
     // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
-    
+
         values = coll->GetValues(index);
     }
     else {
-        lua_checktype(L, 1, LUA_TSTRING);
-        const char *name = luaL_checkunsigned(L, 1);
-    
+        luaL_checktype(L, 1, LUA_TSTRING);
+        const char *name = luaL_checkstring(L, 1);
+
         values = coll->GetValues(name);
     }
 
@@ -148,12 +148,65 @@ int nvcoll_Set(lua_State *L)
 }
 
 
-int nvcoll_Remove(const std::string &name)
+int nvcoll_Remove(lua_State *L)
 {
     NameValueCollection *coll = GetColl(L);
+    lua_pushboolean(L, coll->Remove(luaL_checkstring(L, 1)));
+    return 1;
+}
 
-    // TODO: permit nil
-    const char *name = luaL_checkstring(L, 1);
-    lua_pushboolean(L, coll->Remove(name));
+
+int nvcoll___Index(lua_State *L)
+{
+    lua_pushstring(L, "Get");
+    lua_rawget(L, 1);
+    lua_pushvalue(L, 2);
+    lua_call(L, 1, 1);
+    return 1;
+}
+
+
+int nvcoll___NewIndex(lua_State *L)
+{
+    lua_pushstring(L, "Set");
+    lua_rawget(L, 1);
+    lua_pushvalue(L, 2);
+    lua_pushvalue(L, 3);
+    lua_call(L, 2, 1);
+    return 1;
+}
+
+
+static luaL_Reg nvcoll_Lib[] = {
+    { "Add", nvcoll_Add },
+    { "Get", nvcoll_Get },
+    { "GetKey", nvcoll_GetKey },
+    { "GetValues", nvcoll_GetValues },
+    { "Clear", nvcoll_Clear },
+    { "AllKeys", nvcoll_AllKeys },
+    { "Set", nvcoll_Set },
+    { "Remove", nvcoll_Remove },
+    { NULL, NULL }
+};
+
+
+static luaL_Reg nvcoll_LibMeta[] = {
+    {"__index", nvcoll___Index},
+    {"__newindex", nvcoll___NewIndex},
+    {NULL, NULL}
+};
+
+
+int luaopen_nvcoll(lua_State *L, NameValueCollection *collection)
+{
+    luaL_newlibtable(L, nvcoll_Lib);
+    lua_pushlightuserdata(L, (void *)collection);
+    luaL_setfuncs(L, nvcoll_Lib, 1);
+
+    luaL_newlibtable(L, nvcoll_LibMeta);
+    lua_pushlightuserdata(L, (void *)collection);
+    luaL_setfuncs(L, nvcoll_LibMeta, 1);
+    lua_setmetatable(L, -2);
+
     return 1;
 }
