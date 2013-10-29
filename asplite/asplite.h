@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2013 Alex Kozlov
+//Copyright (c) 2013 Alex Kozlov
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
@@ -67,7 +67,7 @@ public:
             return false;
         }
     }
-    
+
     std::string Get(size_t index) const {
         const Pair &pair = values_[index];
         std::string str;
@@ -76,10 +76,10 @@ public:
             if (iter + 1 != pair.values.end())
                 str += ',';
         }
-        
+
         return str;
     }
-    
+
     // TODO: Distinguish between not found and null.
     std::string Get(const std::string &name) const {
         auto iter = keys_.find(name);
@@ -88,7 +88,7 @@ public:
         else
             return std::string();
     }
-    
+
     std::string GetKey(size_t index) const {
         return values_[index].key;
     }
@@ -104,20 +104,20 @@ public:
         else
             return std::vector<std::string>();
     }
-    
+
     void Clear() {
         keys_.clear();
         values_.clear();
     }
-    
-    std::vector<std:string> AllKeys() const {
-        std::vector<std:string> keys;
+
+    std::vector<std::string> AllKeys() const {
+        std::vector<std::string> keys;
         for (auto iter = keys_.begin(); iter != keys_.end(); ++iter) {
             keys.push_back(iter->first);
         }
         return keys;
     }
-    
+
     bool Set(const std::string &name, const std::string &value) {
         auto iter = keys_.find(name);
         if (iter == keys_.end()) {
@@ -126,17 +126,17 @@ public:
             return true;
         }
         else {
-            values_[iter->second_].values.clear();
-            values_[iter->second_].push_back(value);
+            values_[iter->second].values.clear();
+            values_[iter->second].values.push_back(value);
             return false;
         }
     }
-    
+
     bool Remove(const std::string &name) {
         auto iter = keys_.find(name);
         if (iter == keys_.end())
             return false;
-            
+
         values_.erase(values_.begin() + iter->second);
         keys_.erase(iter);
         return true;
@@ -146,12 +146,12 @@ private:
     struct Pair {
         Pair(const std::string &key, const std::string &value)
             : key(key) { values.push_back(value); }
-    
+
         std::string key;
         std::vector<std::string> values;
     };
 
-    std::map<std::string, std::vector::size_type> keys_;
+    std::map<std::string, std::vector<Pair>::size_type> keys_;
     std::vector<Pair> values_;
 };
 
