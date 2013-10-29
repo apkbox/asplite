@@ -81,6 +81,8 @@ public:
             const char *value = request_info_->http_headers[i].value;
             headers_.push_back(HttpHeader(name, value));
         }
+
+        SetQueryString();
     }
 
     std::string GetUri() override {
@@ -121,6 +123,79 @@ public:
         return mg_read(conn_, buffer, buffer_size);
     }
 
+    static void UrlDecode(const char *src, int src_len,
+                          bool is_form_url_encoded, std::string *decoded)
+    {
+#define HEXTOI(x) (isdigit(x) ? x - '0' : x - 'W')
+        for (int i = 0; i < src_len; i++) {
+            if (src[i] == '%' && i < src_len - 2 &&
+                isxdigit(*(const unsigned char *)(src + i + 1)) &&
+                isxdigit(*(const unsigned char *)(src + i + 2))) {
+                int a = tolower(*(const unsigned char *)(src + i + 1));
+                int b = tolower(*(const unsigned char *)(src + i + 2));
+                decoded->append(1, (char)((HEXTOI(a) << 4) | HEXTOI(b)));
+                i += 2;
+            }
+            else if (is_form_url_encoded && src[i] == '+') {
+                decoded->append(1, ' ');
+            }
+            else {
+                decoded->append(1, src[i]);
+            }
+        }
+
+#undef HEXTOI
+    }
+
+    void SetQueryString() {
+        const char *query_string = request_info_->query_string;
+        const char *p = query_string;
+
+        while (*p != '\0') {
+            const char *name = p;
+            int name_len = 0;
+            const char *value = p;
+            int value_len = 0;
+            const char *eq;
+            const char *amp;
+            int decoded_value_len = 0;
+
+            amp = strchr(name, '&');
+            if (amp == NULL) {
+                amp = name + strlen(name);
+            }
+
+            eq = strchr(name, '=');
+            if (eq != NULL && eq < amp) {
+                name_len = eq - name;
+                value = eq + 1;
+                value_len = amp - value;
+            }
+            else {
+                // TODO: If '=' is missing, use nil instead of empty string for a value?
+                name_len = amp - name;
+                value = amp;
+                value_len = 0;
+            }
+
+            std::string decoded_value;
+            if (value_len > 0) {
+                decoded_value.reserve(value_len);
+                UrlDecode(value, value_len, false, &decoded_value);
+            }
+            else {
+                decoded_value.clear();
+            }
+
+            query_string_.Add(name, decoded_value);
+
+            if (*amp == '&')
+                amp++;
+
+            p = amp;
+        }
+    }
+
     void SetFormData(const std::vector<FormItem> &form_items) {
         for (auto iter = form_items.begin(); iter != form_items.end(); ++iter) {
             if (iter->is_file)
@@ -135,6 +210,7 @@ private:
     struct mg_connection *conn_;
     struct mg_request_info *request_info_;
     std::vector<HttpHeader> headers_;
+    NameValueCollection query_string_;
     NameValueCollection form_;
     std::vector<std::string> files_;
 };
