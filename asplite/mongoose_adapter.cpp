@@ -89,8 +89,8 @@ public:
         return std::string(request_info_->uri);
     }
 
-    std::string GetQueryString() override {
-        return std::string(request_info_->query_string ? 
+    std::string GetQueryStringOld() override {
+        return std::string(request_info_->query_string ?
                 request_info_->query_string : "");
     }
 
@@ -109,6 +109,10 @@ public:
         }
 
         return std::string();
+    }
+
+    NameValueCollection &GetQueryString() override {
+        return query_string_;
     }
 
     NameValueCollection &GetForm() override {
@@ -149,6 +153,9 @@ public:
 
     void SetQueryString() {
         const char *query_string = request_info_->query_string;
+        if (query_string == NULL)
+            return;
+
         const char *p = query_string;
 
         while (*p != '\0') {
@@ -187,7 +194,7 @@ public:
                 decoded_value.clear();
             }
 
-            query_string_.Add(name, decoded_value);
+            query_string_.Add(std::string(name, name_len), decoded_value);
 
             if (*amp == '&')
                 amp++;

@@ -90,12 +90,13 @@ public:
     virtual ~IHttpRequestAdapter() {}
 
     virtual std::string GetUri() = 0;
-    virtual std::string GetQueryString() = 0;
+    virtual std::string GetQueryStringOld() = 0;
     virtual std::string GetRequestMethod() = 0;
 
     virtual const std::vector<HttpHeader> &GetHeaders() const = 0;
     virtual std::string GetHeader(const char *name) const = 0;
 
+    virtual NameValueCollection &GetQueryString() = 0;
     virtual NameValueCollection &GetForm() = 0;
     virtual const HttpFilesCollection &GetFiles() const = 0;
 

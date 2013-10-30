@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lualib", "lualib\lualib.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "asplite", "asplite\asplite.vcxproj", "{5C814481-2796-4169-97F8-16EA8787E411}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mg", "mg\mg.vcxproj", "{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -41,6 +43,12 @@ Global
 		{5C814481-2796-4169-97F8-16EA8787E411}.Release|Win32.Build.0 = Release|Win32
 		{5C814481-2796-4169-97F8-16EA8787E411}.Release|x64.ActiveCfg = Release|x64
 		{5C814481-2796-4169-97F8-16EA8787E411}.Release|x64.Build.0 = Release|x64
+		{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}.Debug|Win32.Build.0 = Debug|Win32
+		{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}.Debug|x64.ActiveCfg = Debug|Win32
+		{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}.Release|Win32.ActiveCfg = Release|Win32
+		{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}.Release|Win32.Build.0 = Release|Win32
+		{3A80E990-4DC4-4FF6-BC66-588D08B7ADE2}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

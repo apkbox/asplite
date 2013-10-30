@@ -475,7 +475,7 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     lua_newtable(L);
 
     lua_pushstring(L, "QUERY_STRING");
-    lua_pushstring(L, context.request->GetQueryString().c_str());
+    lua_pushstring(L, context.request->GetQueryStringOld().c_str());
     lua_settable(L, -3);
 
     lua_pushstring(L, "HTTP_METHOD");
@@ -490,10 +490,13 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     lua_settable(L, -3);
 
     // context.request.Form table
+    lua_pushstring(L, "QueryString");
+    luaopen_nvcoll(L, &context.request->GetQueryString());
+    lua_settable(L, -3);
+
+    // context.request.Form table
     lua_pushstring(L, "Form");
     luaopen_nvcoll(L, &context.request->GetForm());
-
-    // set context.request.Form field
     lua_settable(L, -3);
 
     // context.request.Files table

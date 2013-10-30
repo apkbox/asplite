@@ -118,9 +118,10 @@ end
 asplite.CreateRequestObject = function(request)
 	local object = {
 		prototype = {
-			queryString_ = asplite.ParseQueryString(request.ServerVariables['QUERY_STRING']);
+			-- queryString_ = asplite.ParseQueryString(request.ServerVariables['QUERY_STRING']);
+			queryString_ = request.QueryString;
 			cookies_ = {};
-			form_ = {};
+			form_ = request.Form;
 			files_ = request.Files;
 			serverVariables_ = request.ServerVariables;
 			totalBytes_ = {};
@@ -171,7 +172,9 @@ asplite.CreateRequestObject = function(request)
 
 
 	setmetatable(object.prototype.queryString_, {
-		__tostring = ComposeQueryString_;
+		-- TODO: Make ComposeQueryString_ use NameValueCollection
+		-- or better make it native.
+		-- __tostring = ComposeQueryString_;
 		__newindex = SetNewQueryStringValue_;
 	});
 
