@@ -497,7 +497,7 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     assert(has_metatable);   // nvcoll provides meta for __index and __newindex
     lua_pushstring(L, "__tostring");
     lua_pushlightuserdata(L, (void *)&context.request->GetQueryString());
-    lua_pushcfunction(L, QueryString___tostring, 1);
+    lua_pushcclosure(L, QueryString___tostring, 1);
     lua_settable(L, -3);
     lua_pop(L, 1);  // Remove metatable
 

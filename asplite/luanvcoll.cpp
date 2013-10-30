@@ -216,3 +216,12 @@ int luaopen_nvcoll(lua_State *L, NameValueCollection *collection)
 
     return 1;
 }
+
+
+int QueryString___tostring(lua_State *L)
+{
+    NameValueCollection *coll = GetColl(L);
+    std::string query_string = CreateQueryString(*coll);
+    lua_pushlstring(L, query_string.data(), query_string.length());
+    return 1;
+}

@@ -181,5 +181,7 @@ bool SetAspliteOption(AspliteConfig *asplite,
 int luaopen_asplite(lua_State *L);
 int luaopen_nvcoll(lua_State *L, NameValueCollection *collection);
 
+int QueryString___tostring(lua_State *L);
+
 
 #endif // ASPLITE_ASPLITE_H_562542B9_D0D5_4362_9B23_E9E1CABF9903
