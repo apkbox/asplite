@@ -57,6 +57,7 @@ class NameValueCollection {
 public:
     typedef std::vector<std::string> value_list_type;
 
+    size_t GetCount() const;
     bool Add(const std::string &name, const std::string &value);
     std::string Get(size_t index) const;
     std::string Get(const std::string &name) const;
@@ -83,6 +84,14 @@ private:
     key_map_type keys_;
     pair_list_type values_;
 };
+
+
+// http://www.whatwg.org/specs/web-apps/current-work/
+// multipage/association-of-controls-and-forms.html
+// #application/x-www-form-urlencoded-encoding-algorithm
+
+// TODO: Add CreateXWwwFormString
+std::string CreateQueryString(const NameValueCollection &coll);
 
 
 class IHttpRequestAdapter {

@@ -47,8 +47,13 @@ void StringVectorToLuaArray(lua_State *L,
 } // namespace
 
 
-// TODO: Add __index and __newindex metamodel
-// tied to Get and Set members
+int nvcoll_Count(lua_State *L)
+{
+    NameValueCollection *coll = GetColl(L);
+    lua_pushunsigned(L, coll->GetCount());
+    return 1;
+}
+
 
 int nvcoll_Add(lua_State *L)
 {
@@ -178,6 +183,7 @@ int nvcoll___NewIndex(lua_State *L)
 
 
 static luaL_Reg nvcoll_Lib[] = {
+    { "Count", nvcoll_Count },
     { "Add", nvcoll_Add },
     { "Get", nvcoll_Get },
     { "GetKey", nvcoll_GetKey },

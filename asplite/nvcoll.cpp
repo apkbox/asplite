@@ -24,6 +24,13 @@
 #include <string>
 #include <vector>
 
+
+size_t NameValueCollection::GetCount() const
+{
+    return values_.size();
+}
+
+
 bool NameValueCollection::Add(const std::string &name,
                               const std::string &value)
 {
@@ -135,3 +142,38 @@ bool NameValueCollection::Remove(const std::string &name)
     keys_.erase(iter);
     return true;
 }
+
+
+// TODO: Add CreateXWwwFormString
+std::string CreateQueryString(const NameValueCollection &coll)
+{
+    std::string query_string;
+
+    for (size_t i = 0; i < coll.GetCount(); i++) {
+        std::string key = coll.GetKey(i);
+        NameValueCollection::value_list_type items = coll.GetValues(i);
+        // TODO: Not sure what to do with keys that do not have
+        // values. According to HTML/4.01 successful control must provide
+        // name/value pair.
+        // Quote from HTML spec:
+        //      "If a control doesn't have a current value when the form is submitted,
+        //      user agents are not required to treat it as a successful control."
+        if (items.size() > 0) {
+            for (NameValueCollection::value_list_type::const_iterator iter =
+                    items.begin(); iter != items.end(); ++iter) {
+                // TODO: mitigate null keys/values
+                // TODO: URL encode values.
+                query_string += key;
+                query_string += '=';
+                query_string += *iter;
+                if (iter != items.end() - 1)
+                    query_string += '&';
+            }
+            
+            if (i < coll.GetCount() - 1)
+                query_string += '&';
+        }
+    }
+    return query_string;
+}
+
