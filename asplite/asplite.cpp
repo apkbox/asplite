@@ -440,7 +440,10 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
 
     int stack = lua_gettop(L);
     luaL_openlibs(L);
-    luaopen_asplite(L);
+
+    lua_newtable(L);
+    lua_pushvalue(L, -1);
+    lua_setglobal(L, "asplite");
 
     // create and populate 'context' table
     lua_pushstring(L, "context");
@@ -489,7 +492,7 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
     // set request.ServerVariables field
     lua_settable(L, -3);
 
-    // context.request.Form table
+    // context.request.QueryString table
     lua_pushstring(L, "QueryString");
     luaopen_nvcoll(L, &context.request->GetQueryString());
 
@@ -510,17 +513,7 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
 
     // context.request.Files table
     lua_pushstring(L, "Files");
-    lua_newtable(L);
-
-    const HttpFilesCollection &files = context.request->GetFiles();
-    int index = 1;
-    for (auto iter = files.begin(); iter != files.end(); ++iter) {
-        lua_pushinteger(L, index++);
-        lua_pushstring(L, iter->c_str());
-        lua_settable(L, -3);
-    }
-
-    // set context.request.Files field
+    luaopen_fcoll(L, &context.request->GetFiles());
     lua_settable(L, -3);
 
     // set context.request field

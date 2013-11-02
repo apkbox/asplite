@@ -119,7 +119,7 @@ public:
         return form_;
     }
 
-    const HttpFilesCollection &GetFiles() const override {
+    HttpFileCollection &GetFiles() override {
         return files_;
     }
 
@@ -206,7 +206,8 @@ public:
     void SetFormData(const std::vector<FormItem> &form_items) {
         for (auto iter = form_items.begin(); iter != form_items.end(); ++iter) {
             if (iter->is_file)
-                files_.push_back(iter->file_name);
+                files_.Add(iter->name, HttpPostedFile(iter->file_name, 0,
+                        iter->content_type, iter->file_name));
             else {
                 form_.Add(iter->name, iter->value);
             }
@@ -219,7 +220,7 @@ private:
     std::vector<HttpHeader> headers_;
     NameValueCollection query_string_;
     NameValueCollection form_;
-    std::vector<std::string> files_;
+    HttpFileCollection files_;
 };
 
 

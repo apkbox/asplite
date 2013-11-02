@@ -118,7 +118,6 @@ end
 asplite.CreateRequestObject = function(request)
 	local object = {
 		prototype = {
-			-- queryString_ = asplite.ParseQueryString(request.ServerVariables['QUERY_STRING']);
 			queryString_ = request.QueryString;
 			cookies_ = {};
 			form_ = request.Form;

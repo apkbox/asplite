@@ -21,9 +21,6 @@
     <ClCompile Include="membuf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="luamod.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="generator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,7 +36,16 @@
     <ClCompile Include="luanvcoll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nvcoll.cpp">
+    <ClCompile Include="posted_file.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="luafcoll.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file_collection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="name_value_collection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -60,6 +66,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="post.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file_collection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="posted_file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="name_value_collection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

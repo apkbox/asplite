@@ -28,6 +28,10 @@
 
 #include "lua/lua.hpp"
 
+#include "asplite/posted_file.h"
+#include "asplite/file_collection.h"
+#include "asplite/name_value_collection.h"
+
 
 struct HttpHeader {
     HttpHeader(const char *name, const char *value)
@@ -50,50 +54,6 @@ public:
 };
 
 
-typedef std::vector<std::string> HttpStringList;
-typedef std::vector<std::string> HttpFilesCollection;
-
-class NameValueCollection {
-public:
-    typedef std::vector<std::string> value_list_type;
-
-    size_t GetCount() const;
-    bool Add(const std::string &name, const std::string &value);
-    std::string Get(size_t index) const;
-    std::string Get(const std::string &name) const;
-    std::string GetKey(size_t index) const;
-    value_list_type GetValues(size_t index) const;
-    value_list_type GetValues(const std::string &name);
-    void Clear();
-    value_list_type AllKeys() const;
-    bool Set(const std::string &name, const std::string &value);
-    bool Remove(const std::string &name);
-
-private:
-    struct Pair {
-        Pair(const std::string &key, const std::string &value)
-            : key(key) { values.push_back(value); }
-
-        std::string key;
-        value_list_type values;
-    };
-
-    typedef std::vector<Pair> pair_list_type;
-    typedef std::map<std::string, pair_list_type::size_type> key_map_type;
-
-    key_map_type keys_;
-    pair_list_type values_;
-};
-
-
-// http://www.whatwg.org/specs/web-apps/current-work/
-// multipage/association-of-controls-and-forms.html
-// #application/x-www-form-urlencoded-encoding-algorithm
-
-// TODO: Add CreateXWwwFormString
-std::string CreateQueryString(const NameValueCollection &coll);
-
-
 class IHttpRequestAdapter {
 public:
     virtual ~IHttpRequestAdapter() {}
@@ -107,7 +67,7 @@ public:
 
     virtual NameValueCollection &GetQueryString() = 0;
     virtual NameValueCollection &GetForm() = 0;
-    virtual const HttpFilesCollection &GetFiles() const = 0;
+    virtual HttpFileCollection &GetFiles() = 0;
 
     virtual int Read(void *buffer, size_t buffer_size) = 0;
 };
@@ -180,6 +140,7 @@ bool SetAspliteOption(AspliteConfig *asplite,
 
 int luaopen_asplite(lua_State *L);
 int luaopen_nvcoll(lua_State *L, NameValueCollection *collection);
+int luaopen_fcoll(lua_State *L, HttpFileCollection *collection);
 
 int QueryString___tostring(lua_State *L);
 
