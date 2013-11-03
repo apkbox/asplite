@@ -35,7 +35,7 @@ inline NameValueCollection *GetColl(lua_State *L)
 
 
 void StringVectorToLuaArray(lua_State *L,
-                            NameValueCollection::value_list_type &values)
+                            const NameValueCollection::value_list_type &values)
 {
     lua_newtable(L);
     int index = 0;
@@ -72,20 +72,23 @@ int nvcoll_Get(lua_State *L)
 {
     NameValueCollection *coll = GetColl(L);
 
-    std::string value;
-
     // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
-
-        value = coll->Get(index);
+        std::string value;
+        if (coll->Get(index, &value))
+            lua_pushlstring(L, value.data(), value.length());
+        else
+            lua_pushnil(L);
     }
     else {
         const char *name = luaL_checkstring(L, 1);
-        value = coll->Get(name);
+        std::string value;
+        if (coll->Get(name, &value))
+            lua_pushlstring(L, value.data(), value.length());
+        else
+            lua_pushnil(L);
     }
-
-    lua_pushlstring(L, value.data(), value.length());
     return 1;
 }
 
@@ -94,8 +97,11 @@ int nvcoll_GetKey(lua_State *L)
 {
     NameValueCollection *coll = GetColl(L);
     lua_Unsigned index = luaL_checkunsigned(L, 1);
-    std::string value = coll->GetKey(index);
-    lua_pushlstring(L, value.data(), value.length());
+    std::string key;
+    if (coll->GetKey(index, &key))
+        lua_pushlstring(L, key.data(), key.length());
+    else
+        lua_pushnil(L);
     return 1;
 }
 
@@ -103,23 +109,26 @@ int nvcoll_GetKey(lua_State *L)
 int nvcoll_GetValues(lua_State *L)
 {
     NameValueCollection *coll = GetColl(L);
-
-    NameValueCollection::value_list_type values;
+    const NameValueCollection::value_list_type *values;
 
     // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
-
-        values = coll->GetValues(index);
+        if (coll->GetValues(index, &values))
+            StringVectorToLuaArray(L, *values);
+        else
+            lua_pushnil(L);
     }
     else {
         luaL_checktype(L, 1, LUA_TSTRING);
         const char *name = luaL_checkstring(L, 1);
 
-        values = coll->GetValues(name);
+        if (coll->GetValues(name, &values))
+            StringVectorToLuaArray(L, *values);
+        else
+            lua_pushnil(L);
     }
 
-    StringVectorToLuaArray(L, values);
     return 1;
 }
 

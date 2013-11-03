@@ -37,107 +37,25 @@ public:
         return values_.size();
     }
 
-    bool Add(const key_type &name, const value_type &value) {
-        key_map_type::const_iterator iter = keys_.find(name);
-        if (iter == keys_.end()) {
-            keys_[name] = values_.size();
-            values_.push_back(Pair(name, value));
-            return true;
-        }
-        else {
-            values_[iter->second].values.push_back(value);
-            return false;
-        }
-    }
-
-    value_type Get(size_t index) const {
-        const Pair &pair = values_[index];
-        value_type str;
-        for (value_list_type::const_iterator iter = pair.values.begin();
-                iter != pair.values.end(); ++iter) {
-            str += *iter;
-            if (iter + 1 != pair.values.end())
-                str += ',';
-        }
-
-        return str;
-    }
-
-    // TODO: Distinguish between not found and null.
-    value_type Get(const key_type &name) const {
-        key_map_type::const_iterator iter = keys_.find(name);
-        if (iter != keys_.end())
-            return Get(iter->second);
-        else
-            return value_type();
-    }
-
-    key_type GetKey(size_t index) const {
-        return values_[index].key;
-    }
-
-    const value_list_type &GetValues(size_t index) const {
-        return values_[index].values;
-    }
-
-    value_list_type GetValues(const key_type &name) const {
-        key_map_type::const_iterator iter = keys_.find(name);
-        if (iter != keys_.end())
-            return GetValues(iter->second);
-        else
-            return value_list_type();
-    }
+    bool Add(const key_type &name, const value_type &value);
+    bool Get(size_t index, value_type *value) const;
+    bool Get(const key_type &name, value_type *value) const;
+    bool GetKey(size_t index, key_type *key) const;
+    bool GetValues(size_t index, const value_list_type **value) const;
+    bool GetValues(const key_type &name, const value_list_type **values) const;
 
     void Clear() {
         keys_.clear();
         values_.clear();
     }
 
-    value_list_type AllKeys() const {
-        value_list_type keys;
-        for (key_map_type::const_iterator iter = keys_.begin();
-                iter != keys_.end(); ++iter) {
-            keys.push_back(iter->first);
-        }
-        return keys;
-    }
-
-    bool Set(const key_type &name, const value_type &value) {
-        key_map_type::const_iterator iter = keys_.find(name);
-        if (iter == keys_.end()) {
-            keys_[name] = values_.size();
-            values_.push_back(Pair(name, value));
-            return true;
-        }
-        else {
-            values_[iter->second].values.clear();
-            values_[iter->second].values.push_back(value);
-            return false;
-        }
-    }
-
-    bool Remove(const key_type &name) {
-        key_map_type::const_iterator iter = keys_.find(name);
-        if (iter == keys_.end())
-            return false;
-
-        values_.erase(values_.begin() + iter->second);
-        keys_.erase(iter);
-        return true;
-    }
+    value_list_type AllKeys() const;
+    bool Set(const key_type &name, const value_type &value);
+    bool Remove(const key_type &name);
 
 private:
-    struct Pair {
-        Pair(const key_type &key, const value_type &value)
-        : key(key) {
-            values.push_back(value);
-        }
-
-        key_type key;
-        value_list_type values;
-    };
-
-    typedef std::vector<Pair> pair_list_type;
+    typedef std::pair<key_type, value_list_type> pair_type;
+    typedef std::vector<pair_type> pair_list_type;
     typedef std::map<key_type, typename pair_list_type::size_type> key_map_type;
 
     key_map_type keys_;

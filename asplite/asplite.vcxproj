@@ -43,11 +43,6 @@
     <ClInclude Include="posted_file.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\lualib\lualib.vcxproj">
-      <Project>{be6fdcbb-caf5-4aac-bc64-d2eb43906ad6}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="asplite.lua" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

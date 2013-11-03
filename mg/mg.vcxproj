@@ -92,6 +92,9 @@
     <ProjectReference Include="..\asplite\asplite.vcxproj">
       <Project>{5c814481-2796-4169-97f8-16ea8787e411}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\lualib\lualib.vcxproj">
+      <Project>{be6fdcbb-caf5-4aac-bc64-d2eb43906ad6}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\mongoose\mongoose.vcxproj">
       <Project>{c0a1c0c7-5f05-4e0e-9166-0599d5c4289d}</Project>
     </ProjectReference>
