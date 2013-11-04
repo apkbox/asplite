@@ -33,32 +33,49 @@ HttpFileCollection::key_list_type HttpFileCollection::AllKeys() const
 }
 
 
-const HttpFileCollection::value_type &HttpFileCollection::Get(size_t index) const
+bool HttpFileCollection::Get(size_t index,
+                             HttpFileCollection::value_type *value) const
 {
-    const Pair &pair = values_[index];
-    return pair.values[0];
+    if (index >= values_.size())
+        return false;
+
+    const pair_type &pair = values_[index];
+    *value = pair.second[0];
+    return true;
 }
 
 
-const HttpFileCollection::value_type &HttpFileCollection::Get(
-        const std::string &name) const
+bool HttpFileCollection::Get(const std::string &name,
+                             HttpFileCollection::value_type *value) const
 {
     key_map_type::const_iterator iter = keys_.find(name);
     if (iter != keys_.end())
-        return Get(iter->second);
+        return Get(iter->second, value);
     else
-        return value_type();
+        return false;
 }
 
 
-const HttpFileCollection::value_list_type &HttpFileCollection::GetMultiple(
-        const std::string &name) const
+bool HttpFileCollection::GetKey(size_t index, key_type *key) const
+{
+    if (index >= values_.size())
+        return false;
+
+    *key = values_[index].first;
+    return true;
+}
+
+
+bool HttpFileCollection::GetMultiple(
+        const key_type &name,
+        const HttpFileCollection::value_list_type **values) const
 {
     key_map_type::const_iterator iter = keys_.find(name);
-    if (iter != keys_.end())
-        return values_[iter->second].values;
-    else
-        return value_list_type();
+    if (iter == keys_.end())
+        return false;
+
+    *values = &values_[iter->second].second;
+    return true;
 }
 
 
@@ -68,11 +85,13 @@ bool HttpFileCollection::Add(const HttpFileCollection::key_type &name,
     key_map_type::const_iterator iter = keys_.find(name);
     if (iter == keys_.end()) {
         keys_[name] = values_.size();
-        values_.push_back(Pair(name, value));
+        value_list_type values;
+        values.push_back(value);
+        values_.push_back(pair_type(name, values));
         return true;
     }
     else {
-        values_[iter->second].values.push_back(value);
+        values_[iter->second].second.push_back(value);
         return false;
     }
 }

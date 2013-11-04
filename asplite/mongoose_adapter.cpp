@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-#include "asplite/post.h"
+#include "asplite/http_post_parser.h"
 
 
 namespace {

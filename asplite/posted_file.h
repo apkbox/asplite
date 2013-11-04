@@ -34,18 +34,9 @@ public:
         : file_name_(file_name), content_length_(content_length),
           content_type_(content_type), internal_name_(internal_name) { }
 
-    size_t GetContentLength() const {
-        return content_length_;
-    }
-
-    std::string GetContentType() const {
-        return content_type_;
-    }
-
-    std::string GetFileName() const {
-        return file_name_;
-    }
-
+    size_t GetContentLength() const { return content_length_; }
+    std::string GetContentType() const { return content_type_; }
+    std::string GetFileName() const { return file_name_; }
     void SaveAs(const std::string &name) const;
 
 private:

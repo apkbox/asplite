@@ -141,6 +141,7 @@ bool SetAspliteOption(AspliteConfig *asplite,
 int luaopen_asplite(lua_State *L);
 int luaopen_nvcoll(lua_State *L, NameValueCollection *collection);
 int luaopen_fcoll(lua_State *L, HttpFileCollection *collection);
+int CreateHttpPostedFileObject(lua_State *L, const HttpPostedFile *posted_file);
 
 int QueryString___tostring(lua_State *L);
 

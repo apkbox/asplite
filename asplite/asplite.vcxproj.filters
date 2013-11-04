@@ -27,25 +27,28 @@
     <ClCompile Include="asplite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="post.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="mongoose_adapter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="luanvcoll.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="posted_file.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="luafcoll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="file_collection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="name_value_collection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="posted_file_lua.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="name_value_collection_lua.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file_collection_lua.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="http_post_parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,9 +68,6 @@
     <ClInclude Include="mongoose_adapter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="post.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="file_collection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -75,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="name_value_collection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="http_post_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

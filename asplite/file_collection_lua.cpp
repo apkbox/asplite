@@ -35,7 +35,7 @@ inline HttpFileCollection *GetColl(lua_State *L)
 
 
 void KeyListToLuaArray(lua_State *L,
-                      HttpFileCollection::key_list_type &values)
+                       HttpFileCollection::key_list_type &values)
 {
     lua_newtable(L);
     int index = 0;
@@ -46,14 +46,19 @@ void KeyListToLuaArray(lua_State *L,
 }
 
 
+void HttpPostedFileToObject(lua_State *L, const HttpPostedFile &posted_file)
+{
+    CreateHttpPostedFileObject(L, &posted_file);
+}
+
+
 void ValueListToLuaArray(lua_State *L,
-                       HttpFileCollection::value_list_type &values)
+                         const HttpFileCollection::value_list_type &values)
 {
     lua_newtable(L);
     int index = 0;
     for (auto iter = values.begin(); iter != values.end(); ++iter) {
-        lua_pushlstring(L, iter->GetFileName().data(),
-                        iter->GetFileName().length());
+        CreateHttpPostedFileObject(L, &*iter);
         lua_rawseti(L, -2, ++index);
     }
 }
@@ -73,19 +78,23 @@ int fcoll_Get(lua_State *L)
 {
     HttpFileCollection *coll = GetColl(L);
 
-    HttpPostedFile value;
-
-    // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
-        value = coll->Get(index);
+        HttpPostedFile value;
+        if (coll->Get(index, &value))
+            CreateHttpPostedFileObject(L, &value);
+        else
+            lua_pushnil(L);
     }
     else {
         const char *name = luaL_checkstring(L, 1);
-        value = coll->Get(name);
+        HttpPostedFile value;
+        if (coll->Get(name, &value))
+            CreateHttpPostedFileObject(L, &value);
+        else
+            lua_pushnil(L);
     }
 
-    lua_pushlstring(L, value.GetFileName().data(), value.GetFileName().length());
     return 1;
 }
 
@@ -94,8 +103,11 @@ int fcoll_GetKey(lua_State *L)
 {
     HttpFileCollection *coll = GetColl(L);
     lua_Unsigned index = luaL_checkunsigned(L, 1);
-    std::string value = coll->GetKey(index);
-    lua_pushlstring(L, value.data(), value.length());
+    std::string value;
+    if (coll->GetKey(index, &value))
+        lua_pushlstring(L, value.data(), value.length());
+    else
+        lua_pushnil(L);
     return 1;
 }
 
@@ -104,13 +116,13 @@ int fcoll_GetMultiple(lua_State *L)
 {
     HttpFileCollection *coll = GetColl(L);
 
-    HttpFileCollection::value_list_type values;
+    const HttpFileCollection::value_list_type *values;
 
-    // TODO: permit nil
     const char *name = luaL_checkstring(L, 1);
-    values = coll->GetMultiple(name);
-
-    ValueListToLuaArray(L, values);
+    if (coll->GetMultiple(name, &values))
+        ValueListToLuaArray(L, *values);
+    else
+        lua_pushnil(L);
     return 1;
 }
 
@@ -150,3 +162,4 @@ int luaopen_fcoll(lua_State *L, HttpFileCollection *collection)
 
     return 1;
 }
+

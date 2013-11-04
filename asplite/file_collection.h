@@ -38,26 +38,17 @@ public:
     size_t GetCount() const { return values_.size(); }
     key_list_type AllKeys() const;
 
-    const value_type &Get(size_t index) const;
-    const value_type &Get(const std::string &name) const;
+    bool Get(size_t index, value_type *value) const;
+    bool Get(const key_type &name, value_type *value) const;
+    bool GetKey(size_t index, key_type *key) const;
 
-    key_type GetKey(size_t index) const { return values_[index].key; }
-
-    const value_list_type &GetMultiple(const key_type &name) const;
+    bool GetMultiple(const key_type &name, const value_list_type **values) const;
 
     bool Add(const std::string &name, const value_type &value);
 
 private:
-    struct Pair {
-        Pair(const key_type &key, const value_type &value) : key(key) {
-            values.push_back(value);
-        }
-
-        std::string key;
-        value_list_type values;
-    };
-
-    typedef std::vector<Pair> pair_list_type;
+    typedef std::pair<key_type, value_list_type> pair_type;
+    typedef std::vector<pair_type> pair_list_type;
     typedef std::map<key_type, typename pair_list_type::size_type> key_map_type;
 
     key_map_type keys_;

@@ -21,7 +21,11 @@
 
 #include "asplite/posted_file.h"
 
+#include <Windows.h>
+
 
 void HttpPostedFile::SaveAs(const std::string &name) const
 {
+    // TODO: Fix to wide
+    CopyFileA(internal_name_.c_str(), name.c_str(), false);
 }

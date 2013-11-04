@@ -33,9 +33,7 @@ public:
     typedef std::vector<key_type> key_list_type;
     typedef std::vector<value_type> value_list_type;
 
-    size_t GetCount() const {
-        return values_.size();
-    }
+    size_t GetCount() const { return values_.size(); }
 
     bool Add(const key_type &name, const value_type &value);
     bool Get(size_t index, value_type *value) const;

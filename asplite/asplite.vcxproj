@@ -20,16 +20,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file_collection.cpp" />
-    <ClCompile Include="luafcoll.cpp" />
+    <ClCompile Include="file_collection_lua.cpp" />
     <ClCompile Include="name_value_collection.cpp" />
     <ClCompile Include="posted_file.cpp" />
     <ClCompile Include="generator.cpp" />
     <ClCompile Include="asplite.cpp" />
-    <ClCompile Include="luanvcoll.cpp" />
+    <ClCompile Include="name_value_collection_lua.cpp" />
     <ClCompile Include="membuf.cpp" />
     <ClCompile Include="mongoose_adapter.cpp" />
     <ClCompile Include="parser.cpp" />
-    <ClCompile Include="post.cpp" />
+    <ClCompile Include="http_post_parser.cpp" />
+    <ClCompile Include="posted_file_lua.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asplite.h" />
@@ -39,7 +40,7 @@
     <ClInclude Include="membuf.h" />
     <ClInclude Include="mongoose_adapter.h" />
     <ClInclude Include="parser.h" />
-    <ClInclude Include="post.h" />
+    <ClInclude Include="http_post_parser.h" />
     <ClInclude Include="posted_file.h" />
   </ItemGroup>
   <ItemGroup>
