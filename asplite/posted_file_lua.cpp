@@ -65,8 +65,6 @@ int http_file___index(lua_State *L)
         lua_pushstring(L, "Unknown property or method.");
         lua_error(L);
     }
-
-    lua_pushnil(L);
     return 1;
 }
 

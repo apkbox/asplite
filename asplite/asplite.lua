@@ -169,14 +169,6 @@ asplite.CreateRequestObject = function(request)
 		table.insert(t[k], v);
 	end
 
-
-	setmetatable(object.prototype.queryString_, {
-		-- TODO: Make ComposeQueryString_ use NameValueCollection
-		-- or better make it native.
-		-- __tostring = ComposeQueryString_;
-		__newindex = SetNewQueryStringValue_;
-	});
-
 	function object.prototype:getCookies_()
 		return self.cookies_;
 	end

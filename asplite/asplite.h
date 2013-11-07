@@ -139,7 +139,7 @@ bool SetAspliteOption(AspliteConfig *asplite,
                       const std::string &value);
 
 int luaopen_asplite(lua_State *L);
-int luaopen_nvcoll(lua_State *L, NameValueCollection *collection);
+int CreateNameValueCollection(lua_State *L, NameValueCollection *collection);
 int CreateHttpFileCollection(lua_State *L, HttpFileCollection *collection);
 int CreateHttpPostedFileObject(lua_State *L, const HttpPostedFile *posted_file);
 

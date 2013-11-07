@@ -21,16 +21,18 @@
 
 #include "asplite/asplite.h"
 
+#include <assert.h>
+
 #include "lua/lua.hpp"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 
 
 namespace {
-inline NameValueCollection *GetColl(lua_State *L)
+inline NameValueCollection *GetCollection(lua_State *L, int index)
 {
-    return reinterpret_cast<NameValueCollection *>(
-            lua_touserdata(L, lua_upvalueindex(1)));
+    return *reinterpret_cast<NameValueCollection **>(
+            lua_touserdata(L, index));
 }
 
 
@@ -47,36 +49,28 @@ void StringVectorToLuaArray(lua_State *L,
 } // namespace
 
 
-int nvcoll_Count(lua_State *L)
+int name_value_collection_Add(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
-    lua_pushunsigned(L, coll->GetCount());
-    return 1;
-}
-
-
-int nvcoll_Add(lua_State *L)
-{
-    NameValueCollection *coll = GetColl(L);
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
 
     // TODO: permit nil
     const char *name = luaL_checkstring(L, 1);
     const char *value = luaL_checkstring(L, 2);
 
-    lua_pushboolean(L, coll->Add(name, value));
+    lua_pushboolean(L, collection->Add(name, value));
     return 1;
 }
 
 
-int nvcoll_Get(lua_State *L)
+int name_value_collection_Get(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
 
     // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
         std::string value;
-        if (coll->Get(index, &value))
+        if (collection->Get(index, &value))
             lua_pushlstring(L, value.data(), value.length());
         else
             lua_pushnil(L);
@@ -84,7 +78,7 @@ int nvcoll_Get(lua_State *L)
     else {
         const char *name = luaL_checkstring(L, 1);
         std::string value;
-        if (coll->Get(name, &value))
+        if (collection->Get(name, &value))
             lua_pushlstring(L, value.data(), value.length());
         else
             lua_pushnil(L);
@@ -93,12 +87,12 @@ int nvcoll_Get(lua_State *L)
 }
 
 
-int nvcoll_GetKey(lua_State *L)
+int name_value_collection_GetKey(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
     lua_Unsigned index = luaL_checkunsigned(L, 1);
     std::string key;
-    if (coll->GetKey(index, &key))
+    if (collection->GetKey(index, &key))
         lua_pushlstring(L, key.data(), key.length());
     else
         lua_pushnil(L);
@@ -106,15 +100,15 @@ int nvcoll_GetKey(lua_State *L)
 }
 
 
-int nvcoll_GetValues(lua_State *L)
+int name_value_collection_GetValues(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
     const NameValueCollection::value_list_type *values;
 
     // TODO: permit nil
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
-        if (coll->GetValues(index, &values))
+        if (collection->GetValues(index, &values))
             StringVectorToLuaArray(L, *values);
         else
             lua_pushnil(L);
@@ -123,7 +117,7 @@ int nvcoll_GetValues(lua_State *L)
         luaL_checktype(L, 1, LUA_TSTRING);
         const char *name = luaL_checkstring(L, 1);
 
-        if (coll->GetValues(name, &values))
+        if (collection->GetValues(name, &values))
             StringVectorToLuaArray(L, *values);
         else
             lua_pushnil(L);
@@ -133,104 +127,111 @@ int nvcoll_GetValues(lua_State *L)
 }
 
 
-int nvcoll_Clear(lua_State *L)
+int name_value_collection_Clear(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
-    coll->Clear();
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
+    collection->Clear();
     return 0;
 }
 
 
-int nvcoll_AllKeys(lua_State *L)
+int name_value_collection_AllKeys(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
-    StringVectorToLuaArray(L, coll->AllKeys());
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
+    StringVectorToLuaArray(L, collection->AllKeys());
     return 1;
 }
 
 
-int nvcoll_Set(lua_State *L)
+int name_value_collection_Set(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
 
     // TODO: permit nil
     const char *name = luaL_checkstring(L, 1);
     const char *value = luaL_checkstring(L, 2);
 
-    lua_pushboolean(L, coll->Set(name, value));
+    lua_pushboolean(L, collection->Set(name, value));
     return 1;
 }
 
 
-int nvcoll_Remove(lua_State *L)
+int name_value_collection_Remove(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
-    lua_pushboolean(L, coll->Remove(luaL_checkstring(L, 1)));
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
+    lua_pushboolean(L, collection->Remove(luaL_checkstring(L, 1)));
     return 1;
 }
 
 
-int nvcoll___Index(lua_State *L)
+int name_value_collection___index(lua_State *L)
 {
-    lua_pushstring(L, "Get");
-    lua_rawget(L, 1);
-    lua_pushvalue(L, 2);
-    lua_call(L, 1, 1);
+    NameValueCollection *collection = GetCollection(L, 1);
+    const char *name = luaL_checkstring(L, 2);
+    if (strcmp(name, "Count") == 0) {
+        lua_pushunsigned(L, collection->GetCount());
+    }
+    else if (strcmp(name, "AllKeys") == 0) {
+        StringVectorToLuaArray(L, collection->AllKeys());
+    }
+    else if (strcmp(name, "Add") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_Add, 1);
+    }
+    else if (strcmp(name, "Get") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_Get, 1);
+    }
+    else if (strcmp(name, "GetKey") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_GetKey, 1);
+    }
+    else if (strcmp(name, "GetValues") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_GetValues, 1);
+    }
+    else if (strcmp(name, "Clear") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_Clear, 1);
+    }
+    else if (strcmp(name, "Set") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_Set, 1);
+    }
+    else if (strcmp(name, "Remove") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, name_value_collection_Remove, 1);
+    }
+    else {
+        lua_pushstring(L, "Unknown property or method.");
+        lua_error(L);
+    }
+
     return 1;
 }
 
 
-int nvcoll___NewIndex(lua_State *L)
+int CreateNameValueCollection(lua_State *L, NameValueCollection *collection)
 {
-    lua_pushstring(L, "Set");
-    lua_rawget(L, 1);
-    lua_pushvalue(L, 2);
-    lua_pushvalue(L, 3);
-    lua_call(L, 2, 1);
-    return 1;
-}
+    int stack = lua_gettop(L);
 
-
-static luaL_Reg nvcoll_Lib[] = {
-    { "Count", nvcoll_Count },
-    { "Add", nvcoll_Add },
-    { "Get", nvcoll_Get },
-    { "GetKey", nvcoll_GetKey },
-    { "GetValues", nvcoll_GetValues },
-    { "Clear", nvcoll_Clear },
-    { "AllKeys", nvcoll_AllKeys },
-    { "Set", nvcoll_Set },
-    { "Remove", nvcoll_Remove },
-    { NULL, NULL }
-};
-
-
-static luaL_Reg nvcoll_LibMeta[] = {
-    {"__index", nvcoll___Index},
-    {"__newindex", nvcoll___NewIndex},
-    {NULL, NULL}
-};
-
-
-int luaopen_nvcoll(lua_State *L, NameValueCollection *collection)
-{
-    luaL_newlibtable(L, nvcoll_Lib);
-    lua_pushlightuserdata(L, (void *)collection);
-    luaL_setfuncs(L, nvcoll_Lib, 1);
-
-    luaL_newlibtable(L, nvcoll_LibMeta);
-    lua_pushlightuserdata(L, (void *)collection);
-    luaL_setfuncs(L, nvcoll_LibMeta, 1);
+    NameValueCollection **udata = (NameValueCollection **)lua_newuserdata(L, sizeof(NameValueCollection *));
+    *udata = collection;
+    if (luaL_newmetatable(L, "asplite_NameValueCollection")) {
+        lua_pushcfunction(L, name_value_collection___index);
+        lua_setfield(L, -2, "__index");
+    }
     lua_setmetatable(L, -2);
 
+    assert(stack + 1 == lua_gettop(L));
     return 1;
 }
 
 
 int QueryString___tostring(lua_State *L)
 {
-    NameValueCollection *coll = GetColl(L);
-    std::string query_string = CreateQueryString(*coll);
+    NameValueCollection *collection = GetCollection(L, lua_upvalueindex(1));
+    std::string query_string = CreateQueryString(*collection);
     lua_pushlstring(L, query_string.data(), query_string.length());
     return 1;
 }

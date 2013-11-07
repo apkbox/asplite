@@ -494,21 +494,24 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
 
     // context.request.QueryString table
     lua_pushstring(L, "QueryString");
-    luaopen_nvcoll(L, &context.request->GetQueryString());
+    CreateNameValueCollection(L, &context.request->GetQueryString());
 
+    /* Does not work yet
     int has_metatable = lua_getmetatable(L, -1);
     assert(has_metatable);   // nvcoll provides meta for __index and __newindex
+
     lua_pushstring(L, "__tostring");
     lua_pushlightuserdata(L, (void *)&context.request->GetQueryString());
     lua_pushcclosure(L, QueryString___tostring, 1);
     lua_settable(L, -3);
     lua_pop(L, 1);  // Remove metatable
+    */
 
     lua_settable(L, -3);
 
     // context.request.Form table
     lua_pushstring(L, "Form");
-    luaopen_nvcoll(L, &context.request->GetForm());
+    CreateNameValueCollection(L, &context.request->GetForm());
     lua_settable(L, -3);
 
     // context.request.Files table
