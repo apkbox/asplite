@@ -27,10 +27,10 @@
 
 
 namespace {
-inline HttpFileCollection *GetColl(lua_State *L)
+inline HttpFileCollection *GetCollection(lua_State *L, int index)
 {
     return reinterpret_cast<HttpFileCollection *>(
-            lua_touserdata(L, lua_upvalueindex(1)));
+            lua_touserdata(L, index));
 }
 
 
@@ -66,22 +66,14 @@ void ValueListToLuaArray(lua_State *L,
 } // namespace
 
 
-int fcoll_Count(lua_State *L)
+int file_collection_Get(lua_State *L)
 {
-    HttpFileCollection *coll = GetColl(L);
-    lua_pushunsigned(L, coll->GetCount());
-    return 1;
-}
-
-
-int fcoll_Get(lua_State *L)
-{
-    HttpFileCollection *coll = GetColl(L);
+    HttpFileCollection *collection = GetCollection(L, lua_upvalueindex(1));
 
     if (lua_type(L, 1) == LUA_TNUMBER) {
         lua_Unsigned index = luaL_checkunsigned(L, 1);
         HttpPostedFile value;
-        if (coll->Get(index, &value))
+        if (collection->Get(index, &value))
             CreateHttpPostedFileObject(L, &value);
         else
             lua_pushnil(L);
@@ -89,7 +81,7 @@ int fcoll_Get(lua_State *L)
     else {
         const char *name = luaL_checkstring(L, 1);
         HttpPostedFile value;
-        if (coll->Get(name, &value))
+        if (collection->Get(name, &value))
             CreateHttpPostedFileObject(L, &value);
         else
             lua_pushnil(L);
@@ -99,12 +91,13 @@ int fcoll_Get(lua_State *L)
 }
 
 
-int fcoll_GetKey(lua_State *L)
+int file_collection_GetKey(lua_State *L)
 {
-    HttpFileCollection *coll = GetColl(L);
+    HttpFileCollection *collection = GetCollection(L, lua_upvalueindex(1));
     lua_Unsigned index = luaL_checkunsigned(L, 1);
+
     std::string value;
-    if (coll->GetKey(index, &value))
+    if (collection->GetKey(index, &value))
         lua_pushlstring(L, value.data(), value.length());
     else
         lua_pushnil(L);
@@ -112,13 +105,12 @@ int fcoll_GetKey(lua_State *L)
 }
 
 
-int fcoll_GetMultiple(lua_State *L)
+int file_collection_GetMultiple(lua_State *L)
 {
-    HttpFileCollection *coll = GetColl(L);
+    HttpFileCollection *coll = GetCollection(L, lua_upvalueindex(1));
+    const char *name = luaL_checkstring(L, 1);
 
     const HttpFileCollection::value_list_type *values;
-
-    const char *name = luaL_checkstring(L, 1);
     if (coll->GetMultiple(name, &values))
         ValueListToLuaArray(L, *values);
     else
@@ -127,39 +119,45 @@ int fcoll_GetMultiple(lua_State *L)
 }
 
 
-int fcoll_AllKeys(lua_State *L)
+int file_collection___index(lua_State *L)
 {
-    HttpFileCollection *coll = GetColl(L);
-    KeyListToLuaArray(L, coll->AllKeys());
+    HttpFileCollection *collection = GetCollection(L, 1);
+    const char *name = luaL_checkstring(L, 2);
+    if (strcmp(name, "Count") == 0) {
+        lua_pushunsigned(L, collection->GetCount());
+    }
+    else if (strcmp(name, "AllKeys") == 0) {
+        KeyListToLuaArray(L, collection->AllKeys());
+    }
+    else if (strcmp(name, "Get") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, file_collection_Get, 1);
+    }
+    else if (strcmp(name, "GetKey") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, file_collection_GetKey, 1);
+    }
+    else if (strcmp(name, "GetMultiple") == 0) {
+        lua_pushlightuserdata(L, (void *)collection);
+        lua_pushcclosure(L, file_collection_GetMultiple, 1);
+    }
+    else {
+        lua_pushstring(L, "Unknown property or method.");
+        lua_error(L);
+    }
+
+    lua_pushnil(L);
     return 1;
 }
 
 
-int fcoll___Index(lua_State *L)
+int CreateHttpFileCollection(lua_State *L, HttpFileCollection *collection)
 {
-    lua_pushstring(L, "Get");
-    lua_rawget(L, 1);
-    lua_pushvalue(L, 2);
-    lua_call(L, 1, 1);
-    return 1;
-}
-
-static luaL_Reg fcoll_Lib[] = {
-    { "Count", fcoll_Count },
-    { "Get", fcoll_Get },
-    { "GetKey", fcoll_GetKey },
-    { "GetMultiple", fcoll_GetMultiple },
-    { "AllKeys", fcoll_AllKeys },
-    { NULL, NULL }
-};
-
-
-int luaopen_fcoll(lua_State *L, HttpFileCollection *collection)
-{
-    luaL_newlibtable(L, fcoll_Lib);
     lua_pushlightuserdata(L, (void *)collection);
-    luaL_setfuncs(L, fcoll_Lib, 1);
-
+    if (luaL_newmetatable(L, "asplite_HttpFileCollection")) {
+        lua_pushcfunction(L, file_collection___index);
+        lua_setfield(L, -2, "__index");
+    }
+    lua_setmetatable(L, -2);
     return 1;
 }
-

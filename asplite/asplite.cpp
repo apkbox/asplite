@@ -513,7 +513,7 @@ void ExeciteAspPage(lua_State *L, const std::string &asp_path,
 
     // context.request.Files table
     lua_pushstring(L, "Files");
-    luaopen_fcoll(L, &context.request->GetFiles());
+    CreateHttpFileCollection(L, &context.request->GetFiles());
     lua_settable(L, -3);
 
     // set context.request field

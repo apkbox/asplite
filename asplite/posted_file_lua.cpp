@@ -27,80 +27,57 @@
 
 
 namespace {
-inline const HttpPostedFile *GetObj(lua_State *L)
+inline const HttpPostedFile *GetHttpPostedFile(lua_State *L, int index)
 {
-    return reinterpret_cast<const HttpPostedFile *>(
-            lua_touserdata(L, lua_upvalueindex(1)));
+    return reinterpret_cast<const HttpPostedFile *>(lua_touserdata(L, index));
 }
 } // namespace
 
 
-static int http_file_GetContentLength(lua_State *L)
-{
-    const HttpPostedFile *posted_file = GetObj(L);
-    lua_pushunsigned(L, posted_file->GetContentLength());
-    return 1;
-}
-
-
-static int http_file_GetContentType(lua_State *L)
-{
-    const HttpPostedFile *posted_file = GetObj(L);
-    lua_pushstring(L, posted_file->GetContentType().c_str());
-    return 1;
-}
-
-
-static int http_file_GetFileName(lua_State *L)
-{
-    const HttpPostedFile *posted_file = GetObj(L);
-    lua_pushstring(L, posted_file->GetFileName().c_str());
-    return 1;
-}
-
-
 static int http_file_SaveAs(lua_State *L)
 {
-    const HttpPostedFile *posted_file = GetObj(L);
+    const HttpPostedFile *posted_file = GetHttpPostedFile(L, lua_upvalueindex(1));
     const char *name = luaL_checkstring(L, -1);
     posted_file->SaveAs(name);
+    lua_pushboolean(L, 1);
     return 1;
 }
 
 
-int http_file___Index(lua_State *L)
+int http_file___index(lua_State *L)
 {
-    // TODO: Implement normal properties.
+    const HttpPostedFile *posted_file = GetHttpPostedFile(L, 1);
+    const char *name = luaL_checkstring(L, 2);
+    if (strcmp(name, "ContentLength") == 0) {
+        lua_pushunsigned(L, posted_file->GetContentLength());
+    }
+    else if (strcmp(name, "ContentType") == 0) {
+        lua_pushstring(L, posted_file->GetContentType().c_str());
+    }
+    else if (strcmp(name, "FileName") == 0) {
+        lua_pushstring(L, posted_file->GetFileName().c_str());
+    }
+    else if (strcmp(name, "SaveAs") == 0) {
+        lua_pushlightuserdata(L, (void *)posted_file);
+        lua_pushcclosure(L, http_file_SaveAs, 1);
+    }
+    else {
+        lua_pushstring(L, "Unknown property or method.");
+        lua_error(L);
+    }
+
     lua_pushnil(L);
     return 1;
 }
 
 
-static luaL_Reg http_file_Lib[] = {
-    { "GetContentLength", http_file_GetContentLength },
-    { "GetContentType", http_file_GetContentType },
-    { "GetFileName", http_file_GetFileName },
-    { "SaveAs", http_file_SaveAs },
-    { NULL, NULL }
-};
-
-
-static luaL_Reg http_file_LibMeta[] = {
-    { "__index", http_file___Index },
-    { NULL, NULL }
-};
-
-
 int CreateHttpPostedFileObject(lua_State *L, const HttpPostedFile *posted_file)
 {
-    luaL_newlibtable(L, http_file_Lib);
     lua_pushlightuserdata(L, (void *)posted_file);
-    luaL_setfuncs(L, http_file_Lib, 1);
-
-    luaL_newlibtable(L, http_file_LibMeta);
-    lua_pushlightuserdata(L, (void *)posted_file);
-    luaL_setfuncs(L, http_file_LibMeta, 1);
+    if (luaL_newmetatable(L, "asplite_HttpPostedFile")) {
+        lua_pushcfunction(L, http_file___index);
+        lua_setfield(L, -2, "__index");
+    }
     lua_setmetatable(L, -2);
-
     return 1;
 }
